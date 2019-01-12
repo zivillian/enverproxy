@@ -26,10 +26,8 @@ DEBUG       = True
 def logMsg (msg):
     if DEBUG:
         print(msg, file=sys.stderr)
-    else:
-        syslog.syslog(syslog.LOG_INFO, msg)
-
-
+    syslog.openlog(ident='Envertec Proxy')
+    syslog.syslog(syslog.LOG_INFO, msg)
 
 class FHEM:
     
