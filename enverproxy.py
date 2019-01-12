@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # This is a simple port-forward / proxy, written using only the default python
 # library. If you want to make a suggestion or fix something you can contact-me
 # at voorloop_at_gmail.com
@@ -37,6 +37,9 @@ class FHEM:
         if baseURL == None:
             self.__BASEURL = 'https://enver:Test@homeservice.eitelwein.net:8083/fhem?'
     
+    def __repr__(self):
+        return self.__BASEURL
+    
     def get_token(self, url):
         nurl = urllib.parse.urlsplit(url)
         username = nurl.username
@@ -61,7 +64,7 @@ class FHEM:
             return token
         except urllib.error.URLError as e:
             urllib.error.URLError.reason = e
-            logMsg('URLError: %s' % urllib.error.URLError.reason)
+            logMsg('URLError: ' + urllib.error.URLError.reason)
             return False
     
     def send_command(self, cmd):
@@ -92,7 +95,7 @@ class FHEM:
                 )
             except urllib.error.URLError as e:
                 urllib.error.URLError.reason = e
-                logMsg('URLError: %s' % urllib.error.URLError.reason)
+                logMsg('URLError: ' + urllib.error.URLError.reason)
                 return False
 
 
@@ -138,7 +141,7 @@ class TheServer:
                         self.on_recv()
                 except socket.error:
                     if DEBUG:
-                        logMsg ('Socket error')
+                        logMsg('Socket error')
                         time.sleep(1) 
                     #self.on_close()
                 else:
@@ -148,18 +151,18 @@ class TheServer:
         forward = Forward().start(forward_to[0], forward_to[1])
         clientsock, clientaddr = self.server.accept()
         if forward:
-            logMsg(clientaddr, "has connected")
+            logMsg(clientaddr + ' has connected')
             self.input_list.append(clientsock)
             self.input_list.append(forward)
             self.channel[clientsock] = forward
             self.channel[forward] = clientsock
         else:
-            logMsg("Can't establish connection with remote server.", end=' ')
+            logMsg("Can't establish connection with remote server.")
             logMsg("Closing connection with client side", clientaddr)
             clientsock.close()
 
     def on_close(self):
-        logMsg(self.s.getpeername(), "has disconnected")
+        logMsg(self.s.getpeername() + " has disconnected")
         #remove objects from input_list
         self.input_list.remove(self.s)
         self.input_list.remove(self.channel[self.s])
