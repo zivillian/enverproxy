@@ -59,8 +59,8 @@ class FHEM:
             token = token[token.find('csrf_'):]
             token = token[:token.find("\'")]
             return token
-        except urllib.error.URLError as xxx_todo_changeme1:
-            urllib.error.URLError.reason = xxx_todo_changeme1
+        except urllib.error.URLError as e:
+            urllib.error.URLError.reason = e
             logMsg('URLError: %s' % urllib.error.URLError.reason)
             return False
     
@@ -90,8 +90,8 @@ class FHEM:
                     data=data,
                     timeout=10
                 )
-            except urllib.error.URLError as xxx_todo_changeme:
-                urllib.error.URLError.reason = xxx_todo_changeme
+            except urllib.error.URLError as e:
+                urllib.error.URLError.reason = e
                 logMsg('URLError: %s' % urllib.error.URLError.reason)
                 return False
 
