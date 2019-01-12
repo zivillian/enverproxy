@@ -3,16 +3,16 @@
 # library. If you want to make a suggestion or fix something you can contact-me
 # at voorloop_at_gmail.com
 # Distributed over IDC(I Don't Care) license
-from __future__ import division
+
 import socket
 import select
 import time
 import sys
 import os
-import urllib2
-import urllib
+import urllib.request, urllib.error, urllib.parse
+import urllib.request, urllib.parse, urllib.error
 import ssl
-import urlparse
+import urllib.parse
 import cmd
 
 # Changing the buffer_size and delay, you can improve the speed and bandwidth.
@@ -30,19 +30,19 @@ class FHEM:
         self.__BASEURL = baseURL
     
     def get_token(self, url):
-        nurl = urlparse.urlsplit(url)
+        nurl = urllib.parse.urlsplit(url)
         username = nurl.username
         password = nurl.password
         url = url.replace(username + ':' + password + '@', '')
         url = url.replace(" ", "%20")
         ssl._create_default_https_context = ssl._create_unverified_context
-        p = urllib2.HTTPPasswordMgrWithDefaultRealm()
+        p = urllib.request.HTTPPasswordMgrWithDefaultRealm()
         p.add_password(None, url, username, password)
-        handler = urllib2.HTTPBasicAuthHandler(p)
-        opener = urllib2.build_opener(handler)
-        urllib2.install_opener(opener)
+        handler = urllib.request.HTTPBasicAuthHandler(p)
+        opener = urllib.request.build_opener(handler)
+        urllib.request.install_opener(opener)
         try:
-            uu = urllib2.urlopen(
+            uu = urllib.request.urlopen(
                 url=url,
                 data=None,
                 timeout=10
@@ -51,8 +51,9 @@ class FHEM:
             token = token[token.find('csrf_'):]
             token = token[:token.find("\'")]
             return token
-        except urllib2.URLError, urllib2.URLError.reason:
-            print('URLError: %s' % urllib2.URLError.reason)
+        except urllib.error.URLError as xxx_todo_changeme1:
+            urllib.error.URLError.reason = xxx_todo_changeme1
+            print(('URLError: %s' % urllib.error.URLError.reason))
             return False
     
     def send_command(self, cmd):
@@ -63,26 +64,27 @@ class FHEM:
         if "@" in url:
             token = self.get_token(self.__BASEURL)
             data = {'fwcsrf': token}
-            data = urllib.urlencode(data)
-            nurl = urlparse.urlsplit(url)
+            data = urllib.parse.urlencode(data)
+            nurl = urllib.parse.urlsplit(url)
             username = nurl.username
             password = nurl.password
             url = url.replace(username + ':' + password + '@', '')
             url = url.replace(" ", "%20")
             ssl._create_default_https_context = ssl._create_unverified_context
-            p = urllib2.HTTPPasswordMgrWithDefaultRealm()
+            p = urllib.request.HTTPPasswordMgrWithDefaultRealm()
             p.add_password(None, url, username, password)
-            handler = urllib2.HTTPBasicAuthHandler(p)
-            opener = urllib2.build_opener(handler)
-            urllib2.install_opener(opener)
+            handler = urllib.request.HTTPBasicAuthHandler(p)
+            opener = urllib.request.build_opener(handler)
+            urllib.request.install_opener(opener)
             try:
-                urllib2.urlopen(
+                urllib.request.urlopen(
                     url=url,
                     data=data,
                     timeout=10
                 )
-            except urllib2.URLError, urllib2.URLError.reason:
-                print('URLError: %s' % urllib2.URLError.reason)
+            except urllib.error.URLError as xxx_todo_changeme:
+                urllib.error.URLError.reason = xxx_todo_changeme
+                print(('URLError: %s' % urllib.error.URLError.reason))
                 return False
 
 
@@ -94,8 +96,8 @@ class Forward:
         try:
             self.forward.connect((host, port))
             return self.forward
-        except Exception, e:
-            print e
+        except Exception as e:
+            print(e)
             return False
 
 class TheServer:
@@ -138,18 +140,18 @@ class TheServer:
         forward = Forward().start(forward_to[0], forward_to[1])
         clientsock, clientaddr = self.server.accept()
         if forward:
-            print clientaddr, "has connected"
+            print(clientaddr, "has connected")
             self.input_list.append(clientsock)
             self.input_list.append(forward)
             self.channel[clientsock] = forward
             self.channel[forward] = clientsock
         else:
-            print "Can't establish connection with remote server.",
-            print "Closing connection with client side", clientaddr
+            print("Can't establish connection with remote server.", end=' ')
+            print("Closing connection with client side", clientaddr)
             clientsock.close()
 
     def on_close(self):
-        print self.s.getpeername(), "has disconnected"
+        print(self.s.getpeername(), "has disconnected")
         #remove objects from input_list
         self.input_list.remove(self.s)
         self.input_list.remove(self.channel[self.s])
@@ -195,38 +197,38 @@ class TheServer:
         fhem_server = FHEM('https://' + fhem_user + ':' + fhem_pass + '@' + fhem_DNS + ':8083/fhem?')
         
         for wrdict in wrdata:
-            print wrdict['wrid']
+            print(wrdict['wrid'])
             values = 'ac', 'dc', 'temp', 'power', 'totalkwh', 'freq'
             for value in values:
                 #fhem_server.send_command('set slr_panel ' + value + ' ' + wrdict[value])
-                print('set slr_panel ' + value + ' ' + wrdict[value])
+                print(('set slr_panel ' + value + ' ' + wrdict[value]))
 
     def process_data(self, data):
         datainhex = data.encode('hex')
-        print datainhex
+        print(datainhex)
         wr = []
         wr_index = 0
         wr_index_max = 20
         while True:
             if DEBUG:
-                print "Processing Data"
+                print("Processing Data")
             response = self.extract(datainhex, wr_index)
             if response:
                 if DEBUG:
-                    print "."
+                    print(".")
                 wr.append(response)
             wr_index += 1
             if wr_index >= wr_index_max:
                 break
         if DEBUG:
-            print "Processed Data!"
-            print wr
-            print "Submitting Data"
+            print("Processed Data!")
+            print(wr)
+            print("Submitting Data")
         self.submit_data(wr)
 
     def on_recv(self):
         data = self.data
-        print len(data)
+        print(len(data))
         if len(data) == 662: 
             self.process_data(data)
             #print data.encode('hex')
@@ -237,5 +239,5 @@ if __name__ == '__main__':
         try:
             server.main_loop()
         except KeyboardInterrupt:
-            print "Ctrl C - Stopping server"
+            print("Ctrl C - Stopping server")
             sys.exit(1)
