@@ -156,7 +156,7 @@ class TheServer:
             self.channel[forward] = clientsock
         else:
             logMsg("Can't establish connection with remote server.")
-            logMsg("Closing connection with client side", clientaddr)
+            logMsg("Closing connection with client side" + clientaddr)
             clientsock.close()
 
     def on_close(self):
