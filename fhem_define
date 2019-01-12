@@ -1,5 +1,7 @@
 define slr_panel dummy
 attr slr_panel group Strom
-attr slr_panel room Infrastruktur
+attr slr_panel room Infrastruktur, Keller
 attr slr_panel readingList ac dc temp power totalkwh freq
 attr slr_panel alias Solarpanel
+attr slr_panel {sprintf("Zählerstand %.3f kWh, aktuelle Leistung %.1f W", ReadingsVal($name,"totalkwh",0), ReadingsVal($name,"power",0))}
+attr slr_panel icon measure_power_meter
