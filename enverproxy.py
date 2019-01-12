@@ -10,9 +10,7 @@ import time
 import sys
 import os
 import urllib.request, urllib.error, urllib.parse
-import urllib.request, urllib.parse, urllib.error
 import ssl
-import urllib.parse
 import cmd
 
 # Changing the buffer_size and delay, you can improve the speed and bandwidth.
@@ -20,14 +18,15 @@ import cmd
 buffer_size = 4096
 delay       = 0.0001
 forward_to  = ('www.envertecportal.com', 10013)
+forward_to  = ('47.91.242.120', 10013)
 DEBUG       = False
 
 
 class FHEM:
-    self.__BASEURL = 'https://enver:Test@homeservice.eitelwein.net:8083/fhem?'
-
-    def __init__(self, baseURL = self.__BASEURL):
-        self.__BASEURL = baseURL
+    
+    def __init__(self, baseURL = None):
+        if baseURL == None:
+            self.__BASEURL = 'https://enver:Test@homeservice.eitelwein.net:8083/fhem?'
     
     def get_token(self, url):
         nurl = urllib.parse.urlsplit(url)
@@ -237,6 +236,7 @@ class TheServer:
 if __name__ == '__main__':
         server = TheServer('', 10013)
         try:
+            print('Starting server')
             server.main_loop()
         except KeyboardInterrupt:
             print("Ctrl C - Stopping server")
