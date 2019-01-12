@@ -1,5 +1,5 @@
 define slr_panel dummy
 attr slr_panel group Strom
 attr slr_panel room Infrastruktur
-attr slr_panel readingList ID Frequenz Leistung Gleichspannung Energie  Temperatur
+attr slr_panel readingList ac dc temp power totalkwh freq
 attr slr_panel alias Solarpanel
