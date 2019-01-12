@@ -9,13 +9,82 @@ import select
 import time
 import sys
 import os
+import urllib2
+import urllib
+import ssl
+import urlparse
+import cmd
 
 # Changing the buffer_size and delay, you can improve the speed and bandwidth.
 # But when buffer get to high or delay go too down, you can broke things
 buffer_size = 4096
-delay = 0.0001
-forward_to = ('www.envertecportal.com', 10013)
-DEBUG = False
+delay       = 0.0001
+forward_to  = ('www.envertecportal.com', 10013)
+DEBUG       = False
+
+
+class FHEM:
+    self.__BASEURL = 'https://enver:Test@homeservice.eitelwein.net:8083/fhem?'
+
+    def __init__(self, baseURL = self.__BASEURL):
+        self.__BASEURL = baseURL
+    
+    def get_token(self, url):
+        nurl = urlparse.urlsplit(url)
+        username = nurl.username
+        password = nurl.password
+        url = url.replace(username + ':' + password + '@', '')
+        url = url.replace(" ", "%20")
+        ssl._create_default_https_context = ssl._create_unverified_context
+        p = urllib2.HTTPPasswordMgrWithDefaultRealm()
+        p.add_password(None, url, username, password)
+        handler = urllib2.HTTPBasicAuthHandler(p)
+        opener = urllib2.build_opener(handler)
+        urllib2.install_opener(opener)
+        try:
+            uu = urllib2.urlopen(
+                url=url,
+                data=None,
+                timeout=10
+            )
+            token = uu.read()
+            token = token[token.find('csrf_'):]
+            token = token[:token.find("\'")]
+            return token
+        except urllib2.URLError, urllib2.URLError.reason:
+            print('URLError: %s' % urllib2.URLError.reason)
+            return False
+    
+    def send_command(self, cmd):
+        # cmd is the FHEM command
+        # type: (object) -> object
+        # url = self.__BASEURL + 'cmd=set+licht+on'
+        url = self.__BASEURL + 'cmd=' + cmd
+        if "@" in url:
+            token = self.get_token(self.__BASEURL)
+            data = {'fwcsrf': token}
+            data = urllib.urlencode(data)
+            nurl = urlparse.urlsplit(url)
+            username = nurl.username
+            password = nurl.password
+            url = url.replace(username + ':' + password + '@', '')
+            url = url.replace(" ", "%20")
+            ssl._create_default_https_context = ssl._create_unverified_context
+            p = urllib2.HTTPPasswordMgrWithDefaultRealm()
+            p.add_password(None, url, username, password)
+            handler = urllib2.HTTPBasicAuthHandler(p)
+            opener = urllib2.build_opener(handler)
+            urllib2.install_opener(opener)
+            try:
+                urllib2.urlopen(
+                    url=url,
+                    data=data,
+                    timeout=10
+                )
+            except urllib2.URLError, urllib2.URLError.reason:
+                print('URLError: %s' % urllib2.URLError.reason)
+                return False
+
 
 class Forward:
     def __init__(self):
@@ -119,21 +188,18 @@ class TheServer:
 
     def submit_data(self, wrdata):
         # Can be https as well. Also: if you use another port then 80 or 443 do not forget to add the port number.
-        pimatic_server = 'IP FOR PIMATIC SERVER'
-        # user and password. I prefer a special posting user having a role of varposter with only  "variables": "write" in the varposter role. Rest to "none" or false.
-        pimatic_user = 'removed'
-        pimatic_pass = 'removed'
-        pim_user_pass = pimatic_user + ':' + pimatic_pass
-        curl_prefix = 'curl --silent --insecure -X PATCH --header "Content-Type:application/json" --data \'{"type": "value", "valueOrExpression": "'
-        pim_server_url = pimatic_server + '/api/variables/'
-        #print len(wrdata)
-        #print wrdata
-
+        # user and password.
+        fhem_user = 'enver'
+        fhem_pass = 'Test'
+        fhem_DNS  = 'homeservice.eitelwein.net'
+        fhem_server = FHEM('https://' + fhem_user + ':' + fhem_pass + '@' + fhem_DNS + ':8083/fhem?')
+        
         for wrdict in wrdata:
             print wrdict['wrid']
             values = 'ac', 'dc', 'temp', 'power', 'totalkwh', 'freq'
             for value in values:
-                os.system(curl_prefix + wrdict[value] + '"}\'  --user "' + pim_user_pass + '" ' + pim_server_url + "wrid" + wrdict['wrid'] + "_" + value)
+                #fhem_server.send_command('set slr_panel ' + value + ' ' + wrdict[value])
+                print('set slr_panel ' + value + ' ' + wrdict[value])
 
     def process_data(self, data):
         datainhex = data.encode('hex')
