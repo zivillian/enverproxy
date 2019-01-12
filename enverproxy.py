@@ -12,6 +12,7 @@ import os
 import urllib.request, urllib.error, urllib.parse
 import ssl
 import cmd
+import syslog
 
 # Changing the buffer_size and delay, you can improve the speed and bandwidth.
 # But when buffer get to high or delay go too down, you can broke things
@@ -19,7 +20,15 @@ buffer_size = 4096
 delay       = 0.0001
 forward_to  = ('www.envertecportal.com', 10013)
 forward_to  = ('47.91.242.120', 10013)
-DEBUG       = False
+DEBUG       = True
+
+
+def logMsg (msg):
+    if DEBUG:
+        print(msg, file=sys.stderr)
+    else:
+        syslog.syslog(syslog.LOG_INFO, msg)
+
 
 
 class FHEM:
@@ -52,7 +61,7 @@ class FHEM:
             return token
         except urllib.error.URLError as xxx_todo_changeme1:
             urllib.error.URLError.reason = xxx_todo_changeme1
-            print(('URLError: %s' % urllib.error.URLError.reason))
+            logMsg('URLError: %s' % urllib.error.URLError.reason)
             return False
     
     def send_command(self, cmd):
@@ -83,7 +92,7 @@ class FHEM:
                 )
             except urllib.error.URLError as xxx_todo_changeme:
                 urllib.error.URLError.reason = xxx_todo_changeme
-                print(('URLError: %s' % urllib.error.URLError.reason))
+                logMsg('URLError: %s' % urllib.error.URLError.reason)
                 return False
 
 
@@ -96,7 +105,7 @@ class Forward:
             self.forward.connect((host, port))
             return self.forward
         except Exception as e:
-            print(e)
+            logMsg('Forward produced error: ' + e)
             return False
 
 class TheServer:
@@ -129,7 +138,7 @@ class TheServer:
                         self.on_recv()
                 except socket.error:
                     if DEBUG:
-                        print ('Socket error')
+                        logMsg ('Socket error')
                         time.sleep(1) 
                     #self.on_close()
                 else:
@@ -139,18 +148,18 @@ class TheServer:
         forward = Forward().start(forward_to[0], forward_to[1])
         clientsock, clientaddr = self.server.accept()
         if forward:
-            print(clientaddr, "has connected")
+            logMsg(clientaddr, "has connected")
             self.input_list.append(clientsock)
             self.input_list.append(forward)
             self.channel[clientsock] = forward
             self.channel[forward] = clientsock
         else:
-            print("Can't establish connection with remote server.", end=' ')
-            print("Closing connection with client side", clientaddr)
+            logMsg("Can't establish connection with remote server.", end=' ')
+            logMsg("Closing connection with client side", clientaddr)
             clientsock.close()
 
     def on_close(self):
-        print(self.s.getpeername(), "has disconnected")
+        logMsg(self.s.getpeername(), "has disconnected")
         #remove objects from input_list
         self.input_list.remove(self.s)
         self.input_list.remove(self.channel[self.s])
@@ -196,11 +205,12 @@ class TheServer:
         fhem_server = FHEM('https://' + fhem_user + ':' + fhem_pass + '@' + fhem_DNS + ':8083/fhem?')
         
         for wrdict in wrdata:
-            print(wrdict['wrid'])
+            logMsg(wrdict['wrid'])
             values = 'ac', 'dc', 'temp', 'power', 'totalkwh', 'freq'
             for value in values:
-                #fhem_server.send_command('set slr_panel ' + value + ' ' + wrdict[value])
-                print(('set slr_panel ' + value + ' ' + wrdict[value]))
+                fhem_server.send_command('set slr_panel ' + value + ' ' + wrdict[value])
+                if DEBUG:
+                    logMsg('FHEM command: set slr_panel ' + value + ' ' + wrdict[value])
 
     def process_data(self, data):
         datainhex = data.encode('hex')
@@ -210,24 +220,24 @@ class TheServer:
         wr_index_max = 20
         while True:
             if DEBUG:
-                print("Processing Data")
+                logMsg("Processing Data")
             response = self.extract(datainhex, wr_index)
             if response:
                 if DEBUG:
-                    print(".")
+                    logMsg(".")
                 wr.append(response)
             wr_index += 1
             if wr_index >= wr_index_max:
                 break
         if DEBUG:
-            print("Processed Data!")
-            print(wr)
-            print("Submitting Data")
+            logMsg("Processed Data!")
+            logMsg(wr)
+            logMsg("Submitting Data")
         self.submit_data(wr)
 
     def on_recv(self):
         data = self.data
-        print(len(data))
+        logMsg(len(data))
         if len(data) == 662: 
             self.process_data(data)
             #print data.encode('hex')
@@ -236,8 +246,8 @@ class TheServer:
 if __name__ == '__main__':
         server = TheServer('', 10013)
         try:
-            print('Starting server')
+            logMsg('Starting server')
             server.main_loop()
         except KeyboardInterrupt:
-            print("Ctrl C - Stopping server")
+            logMsg("Ctrl C - Stopping server")
             sys.exit(1)
