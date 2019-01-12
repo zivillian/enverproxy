@@ -1,2 +1,6 @@
-Taken from thread in FHEM forum:
+Initially taken from thread in FHEM forum:
 https://forum.fhem.de/index.php?topic=61867.0
+
+Added/changed code to work with FHEM smarthome server
+
+In FHEM, add device as listed in fhem_define
