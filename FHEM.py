@@ -19,7 +19,7 @@ class FHEM:
         self.__session        = requests.session()
         self.__session.auth   = (user, passw)
         # Place your server certificate here if you use https
-        self.__session.verify = 'server.pem'
+        self.__session.verify = 'server-cert.pem'
         self.__session.verify = False
         if self.__session.verify == False:
             # Suppress error warnings of unverified https requests
