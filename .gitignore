@@ -1,0 +1,6 @@
+# ignore python bytecode
+**/__pycache__
+*.pyc
+.project
+.pydevproject
+
