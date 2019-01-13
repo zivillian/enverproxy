@@ -14,6 +14,7 @@ class FHEM:
             self.__log = l
         self.__session = requests.session()
         self.__session.auth = (user, passw)
+        self.__session.verify='/etc/ssl/certs/ca-certificates.crt'
     
     def __repr__(self):
         return 'FHEM(' + self.__BASEURL + ', ' + self.__session.auth[0] + ', ' + self.__session.auth[1] + ', ' + self.__log + ')'
