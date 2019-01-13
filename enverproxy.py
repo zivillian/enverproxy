@@ -140,7 +140,7 @@ class TheServer:
         
         for wrdict in wrdata:
             self.__log.logMsg(str(wrdict['wrid']))
-            values = 'ac', 'dc', 'temp', 'power', 'totalkwh', 'freq'
+            values = 'wrid', 'ac', 'dc', 'temp', 'power', 'totalkwh', 'freq'
             for value in values:
                 fhem_server.send_command('set slr_panel ' + value + ' ' + wrdict[value])
                 if DEBUG:
