@@ -26,10 +26,8 @@ DEBUG       = True
 def logMsg (msg):
     if DEBUG:
         print(msg, file=sys.stderr)
-    else:
-        syslog.syslog(syslog.LOG_INFO, msg)
-
-
+    syslog.openlog(ident='Envertec Proxy')
+    syslog.syslog(syslog.LOG_INFO, msg)
 
 class FHEM:
     
@@ -158,7 +156,7 @@ class TheServer:
             self.channel[forward] = clientsock
         else:
             logMsg("Can't establish connection with remote server.")
-            logMsg("Closing connection with client side", clientaddr)
+            logMsg("Closing connection with client side" + clientaddr)
             clientsock.close()
 
     def on_close(self):
