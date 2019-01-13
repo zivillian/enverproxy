@@ -9,10 +9,8 @@ import select
 import time
 import sys
 import os
-import urllib.request, urllib.error, urllib.parse
-import ssl
-import cmd
-import syslog
+from slog import slog
+from FHEM import FHEM
 
 # Changing the buffer_size and delay, you can improve the speed and bandwidth.
 # But when buffer get to high or delay go too down, you can broke things
@@ -23,82 +21,12 @@ forward_to  = ('47.91.242.120', 10013)
 DEBUG       = True
 
 
-def logMsg (msg):
-    if DEBUG:
-        print(msg, file=sys.stderr)
-    syslog.openlog(ident='Envertec Proxy')
-    syslog.syslog(syslog.LOG_INFO, msg)
-
-class FHEM:
-    
-    def __init__(self, baseURL = None):
-        if baseURL == None:
-            self.__BASEURL = 'https://enver:Test@homeservice.eitelwein.net:8083/fhem?'
-    
-    def __repr__(self):
-        return self.__BASEURL
-    
-    def get_token(self, url):
-        nurl = urllib.parse.urlsplit(url)
-        username = nurl.username
-        password = nurl.password
-        url = url.replace(username + ':' + password + '@', '')
-        url = url.replace(" ", "%20")
-        ssl._create_default_https_context = ssl._create_unverified_context
-        p = urllib.request.HTTPPasswordMgrWithDefaultRealm()
-        p.add_password(None, url, username, password)
-        handler = urllib.request.HTTPBasicAuthHandler(p)
-        opener = urllib.request.build_opener(handler)
-        urllib.request.install_opener(opener)
-        try:
-            uu = urllib.request.urlopen(
-                url=url,
-                data=None,
-                timeout=10
-            )
-            token = uu.read()
-            token = token[token.find('csrf_'):]
-            token = token[:token.find("\'")]
-            return token
-        except urllib.error.URLError as e:
-            urllib.error.URLError.reason = e
-            logMsg('URLError: ' + str(urllib.error.URLError.reason))
-            return False
-    
-    def send_command(self, cmd):
-        # cmd is the FHEM command
-        # type: (object) -> object
-        # url = self.__BASEURL + 'cmd=set+licht+on'
-        url = self.__BASEURL + 'cmd=' + cmd
-        if "@" in url:
-            token = self.get_token(self.__BASEURL)
-            data = {'fwcsrf': token}
-            data = urllib.parse.urlencode(data)
-            nurl = urllib.parse.urlsplit(url)
-            username = nurl.username
-            password = nurl.password
-            url = url.replace(username + ':' + password + '@', '')
-            url = url.replace(" ", "%20")
-            ssl._create_default_https_context = ssl._create_unverified_context
-            p = urllib.request.HTTPPasswordMgrWithDefaultRealm()
-            p.add_password(None, url, username, password)
-            handler = urllib.request.HTTPBasicAuthHandler(p)
-            opener = urllib.request.build_opener(handler)
-            urllib.request.install_opener(opener)
-            try:
-                urllib.request.urlopen(
-                    url=url,
-                    data=data,
-                    timeout=10
-                )
-            except urllib.error.URLError as e:
-                urllib.error.URLError.reason = e
-                logMsg('URLError: ' + str(urllib.error.URLError.reason))
-                return False
-
-
 class Forward:
-    def __init__(self):
+    def __init__(self, l=None):
+        if l == None:
+            self.__log = slog('Forward class', True)
+        else:
+            self.__log = l    
         self.forward = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
     def start(self, host, port):
@@ -106,14 +34,18 @@ class Forward:
             self.forward.connect((host, port))
             return self.forward
         except Exception as e:
-            logMsg('Forward produced error: ' + str(e))
+            self.__log.logMsg('Forward produced error: ' + str(e))
             return False
 
 class TheServer:
     input_list = []
     channel = {}
 
-    def __init__(self, host, port):
+    def __init__(self, host, port, l=None):
+        if l == None:
+            self.__log = slog('TheServer class', True)
+        else:
+            self.__log = l
         self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.server.bind((host, port))
@@ -121,7 +53,7 @@ class TheServer:
 
     def main_loop(self):
         self.input_list.append(self.server)
-        while 1:
+        while True:
             time.sleep(delay)
             ss = select.select
             inputready, outputready, exceptready = ss(self.input_list, [], [])
@@ -132,6 +64,7 @@ class TheServer:
 
                 try:
                     self.data = self.s.recv(buffer_size)
+                    #self.data = self.data.decode()
                     if len(self.data) == 0:
                         self.on_close()
                         break
@@ -139,28 +72,28 @@ class TheServer:
                         self.on_recv()
                 except socket.error:
                     if DEBUG:
-                        logMsg('Socket error')
+                        self.__log.logMsg('Socket error')
                         time.sleep(1) 
                     #self.on_close()
                 else:
                     continue
 
     def on_accept(self):
-        forward = Forward().start(forward_to[0], forward_to[1])
+        forward = Forward(self.__log).start(forward_to[0], forward_to[1])
         clientsock, clientaddr = self.server.accept()
         if forward:
-            logMsg(str(clientaddr) + ' has connected')
+            self.__log.logMsg(str(clientaddr) + ' has connected')
             self.input_list.append(clientsock)
             self.input_list.append(forward)
             self.channel[clientsock] = forward
             self.channel[forward] = clientsock
         else:
-            logMsg("Can't establish connection with remote server.")
-            logMsg("Closing connection with client side" + str(clientaddr))
+            self.__log.logMsg("Can't establish connection with remote server.")
+            self.__log.logMsg("Closing connection with client side" + str(clientaddr))
             clientsock.close()
 
     def on_close(self):
-        logMsg(str(self.s.getpeername()) + " has disconnected")
+        self.__log.logMsg(str(self.s.getpeername()) + " has disconnected")
         #remove objects from input_list
         self.input_list.remove(self.s)
         self.input_list.remove(self.channel[self.s])
@@ -203,52 +136,53 @@ class TheServer:
         fhem_user = 'enver'
         fhem_pass = 'Test'
         fhem_DNS  = 'homeservice.eitelwein.net'
-        fhem_server = FHEM('https://' + fhem_user + ':' + fhem_pass + '@' + fhem_DNS + ':8083/fhem?')
+        fhem_server = FHEM('https://' + fhem_DNS + ':8083/fhem?', fhem_user, fhem_pass, self.__log)
         
         for wrdict in wrdata:
-            logMsg(str(wrdict['wrid']))
+            self.__log.logMsg(str(wrdict['wrid']))
             values = 'ac', 'dc', 'temp', 'power', 'totalkwh', 'freq'
             for value in values:
                 fhem_server.send_command('set slr_panel ' + value + ' ' + wrdict[value])
                 if DEBUG:
-                    logMsg('FHEM command: set slr_panel ' + str(value) + ' ' + str(wrdict[value]))
+                    self.__log.logMsg('FHEM command: set slr_panel ' + str(value) + ' ' + str(wrdict[value]))
 
     def process_data(self, data):
-        datainhex = data.encode('hex')
+        datainhex = data.hex()
         print(datainhex)
         wr = []
         wr_index = 0
         wr_index_max = 20
         while True:
             if DEBUG:
-                logMsg("Processing Data")
+                self.__log.logMsg("Processing Data")
             response = self.extract(datainhex, wr_index)
             if response:
                 if DEBUG:
-                    logMsg(".")
+                    self.__log.logMsg(".")
                 wr.append(response)
             wr_index += 1
             if wr_index >= wr_index_max:
                 break
         if DEBUG:
-            logMsg("Processed Data!")
-            logMsg(str(wr))
-            logMsg("Submitting Data")
+            self.__log.logMsg("Processed Data!")
+            self.__log.logMsg(str(wr))
+            self.__log.logMsg("Submitting Data")
         self.submit_data(wr)
 
     def on_recv(self):
         data = self.data
-        logMsg(str(len(data)))
+        self.__log.logMsg(str(len(data)))
         if len(data) == 662: 
             self.process_data(data)
             #print data.encode('hex')
         self.channel[self.s].send(data)
 
 if __name__ == '__main__':
-        server = TheServer('', 10013)
+        l = slog('Envertec Proxy', DEBUG)
+        server = TheServer('', 10013, l)
         try:
-            logMsg('Starting server')
+            l.logMsg('Starting server')
             server.main_loop()
         except KeyboardInterrupt:
-            logMsg("Ctrl C - Stopping server")
+            l.logMsg("Ctrl C - Stopping server")
             sys.exit(1)
