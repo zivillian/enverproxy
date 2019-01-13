@@ -18,7 +18,7 @@ buffer_size = 4096
 delay       = 0.0001
 forward_to  = ('www.envertecportal.com', 10013)
 forward_to  = ('47.91.242.120', 10013)
-DEBUG       = True
+DEBUG       = False
 
 
 class Forward:
