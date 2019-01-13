@@ -62,7 +62,7 @@ class FHEM:
             return token
         except urllib.error.URLError as e:
             urllib.error.URLError.reason = e
-            logMsg('URLError: ' + urllib.error.URLError.reason)
+            logMsg('URLError: ' + str(urllib.error.URLError.reason))
             return False
     
     def send_command(self, cmd):
@@ -93,7 +93,7 @@ class FHEM:
                 )
             except urllib.error.URLError as e:
                 urllib.error.URLError.reason = e
-                logMsg('URLError: ' + urllib.error.URLError.reason)
+                logMsg('URLError: ' + str(urllib.error.URLError.reason))
                 return False
 
 
@@ -106,7 +106,7 @@ class Forward:
             self.forward.connect((host, port))
             return self.forward
         except Exception as e:
-            logMsg('Forward produced error: ' + e)
+            logMsg('Forward produced error: ' + str(e))
             return False
 
 class TheServer:
@@ -149,18 +149,18 @@ class TheServer:
         forward = Forward().start(forward_to[0], forward_to[1])
         clientsock, clientaddr = self.server.accept()
         if forward:
-            logMsg(clientaddr + ' has connected')
+            logMsg(str(clientaddr) + ' has connected')
             self.input_list.append(clientsock)
             self.input_list.append(forward)
             self.channel[clientsock] = forward
             self.channel[forward] = clientsock
         else:
             logMsg("Can't establish connection with remote server.")
-            logMsg("Closing connection with client side" + clientaddr)
+            logMsg("Closing connection with client side" + str(clientaddr))
             clientsock.close()
 
     def on_close(self):
-        logMsg(self.s.getpeername() + " has disconnected")
+        logMsg(str(self.s.getpeername()) + " has disconnected")
         #remove objects from input_list
         self.input_list.remove(self.s)
         self.input_list.remove(self.channel[self.s])
@@ -206,12 +206,12 @@ class TheServer:
         fhem_server = FHEM('https://' + fhem_user + ':' + fhem_pass + '@' + fhem_DNS + ':8083/fhem?')
         
         for wrdict in wrdata:
-            logMsg(wrdict['wrid'])
+            logMsg(str(wrdict['wrid']))
             values = 'ac', 'dc', 'temp', 'power', 'totalkwh', 'freq'
             for value in values:
                 fhem_server.send_command('set slr_panel ' + value + ' ' + wrdict[value])
                 if DEBUG:
-                    logMsg('FHEM command: set slr_panel ' + value + ' ' + wrdict[value])
+                    logMsg('FHEM command: set slr_panel ' + str(value) + ' ' + str(wrdict[value]))
 
     def process_data(self, data):
         datainhex = data.encode('hex')
@@ -232,13 +232,13 @@ class TheServer:
                 break
         if DEBUG:
             logMsg("Processed Data!")
-            logMsg(wr)
+            logMsg(str(wr))
             logMsg("Submitting Data")
         self.submit_data(wr)
 
     def on_recv(self):
         data = self.data
-        logMsg(len(data))
+        logMsg(str(len(data)))
         if len(data) == 662: 
             self.process_data(data)
             #print data.encode('hex')
