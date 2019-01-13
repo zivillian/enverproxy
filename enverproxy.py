@@ -71,9 +71,8 @@ class TheServer:
                     else:
                         self.on_recv()
                 except socket.error:
-                    if DEBUG:
-                        self.__log.logMsg('Socket error')
-                        time.sleep(1) 
+                    self.__log.logMsg('Socket error')
+                    time.sleep(1) 
                     #self.on_close()
                 else:
                     continue
@@ -148,7 +147,8 @@ class TheServer:
 
     def process_data(self, data):
         datainhex = data.hex()
-        print(datainhex)
+        self.__log.logMsg('Data raw: ' + str(data))
+        self.__log.logMsg('Data as hex: ' + str(datainhex))
         wr = []
         wr_index = 0
         wr_index_max = 20
