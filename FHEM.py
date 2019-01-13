@@ -1,14 +1,15 @@
 from slog import slog
 import requests
-
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
+
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 class FHEM:
     
     def __init__(self, baseURL = None, user='', passw='', l=None):
         if baseURL == None:
-            self.__BASEURL = 'https://enver:Test@homeservice.eitelwein.net:8083/fhem?'
+            # Place standard url of your fhem server here
+            self.__BASEURL = 'https://homeservice.eitelwein.net:8083/fhem?'
         else:
             self.__BASEURL = baseURL
         if l == None:
@@ -17,9 +18,13 @@ class FHEM:
             self.__log = l
         self.__session        = requests.session()
         self.__session.auth   = (user, passw)
-        self.__session.verify ='server-ca.pem'
-        self.__session.verify=False
-    
+        # Place your server certificate here if you use https
+        self.__session.verify = 'server.pem'
+        self.__session.verify = False
+        if self.__session.verify == False:
+            # Suppress error warnings of unverified https requests
+            requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
+
     def __repr__(self):
         return 'FHEM(' + self.__BASEURL + ', ' + self.__session.auth[0] + ', ' + self.__session.auth[1] + ', ' + self.__log + ')'
     
