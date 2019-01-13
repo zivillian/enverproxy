@@ -4,3 +4,5 @@ https://forum.fhem.de/index.php?topic=61867.0
 Added/changed code to work with FHEM smarthome server
 
 In FHEM, add device as listed in fhem_define
+
+The underlying python proxy comes from http://voorloopnul.com/blog/a-python-proxy-in-less-than-100-lines-of-code/
