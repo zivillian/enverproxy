@@ -31,7 +31,7 @@ class FHEM:
     def get_token(self, url):
         try:
             r = self.__session.get(url)
-        except ConnectionError as e:
+        except Exception as e:
             self.__log.logMsg('Requests error when getting token: ' + str(e))
         else:
             token = r.text
@@ -49,6 +49,6 @@ class FHEM:
         url   = url + 'cmd=' + cmd
         try:
             r = self.__session.get(url, data=data)
-        except ConnectionError as e:
+        except Exception as e:
             self.__log.logMsg('Requests error when posting command: ' + str(e))
         

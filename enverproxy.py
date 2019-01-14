@@ -70,8 +70,8 @@ class TheServer:
                         break
                     else:
                         self.on_recv()
-                except socket.error:
-                    self.__log.logMsg('Socket error')
+                except socket.error as e:
+                    self.__log.logMsg('Socket error: ' + str(e))
                     time.sleep(1) 
                     #self.on_close()
                 else:
