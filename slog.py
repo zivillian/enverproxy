@@ -13,5 +13,5 @@ class slog:
     
     def logMsg (self, msg):
         if self.__DEBUG:
-            print(msg, file=sys.stderr)
+            #print(msg, file=sys.stderr)
         syslog.syslog(syslog.LOG_INFO, msg)
