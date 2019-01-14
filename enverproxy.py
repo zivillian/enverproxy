@@ -54,9 +54,13 @@ class TheServer:
     def main_loop(self):
         self.input_list.append(self.server)
         while True:
+            if DEBUG:
+                self.__log.logMsg('Entering main loop')
             time.sleep(delay)
             ss = select.select
             inputready, outputready, exceptready = ss(self.input_list, [], [])
+            if DEBUG:
+                self.__log.logMsg('Inputready: ' + str(inputready))
             for self.s in inputready:
                 if self.s == self.server:
                     self.on_accept()
