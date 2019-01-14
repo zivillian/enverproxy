@@ -31,11 +31,12 @@ class FHEM:
     def get_token(self, url):
         try:
             r = self.__session.get(url)
+        except ConnectionError as e:
+            self.__log.logMsg('Requests error when getting token: ' + str(e))
+        else:
             token = r.text
             token = token[token.find('csrf_'):]
             token = token[:token.find("\'")]
-        except ConnectionError as e:
-            self.__log.logMsg('Requests error when getting token: ' + str(e))
         return token
     
     def send_command(self, cmd):
