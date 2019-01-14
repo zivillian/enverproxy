@@ -18,7 +18,7 @@ buffer_size = 4096
 delay       = 0.0001
 forward_to  = ('www.envertecportal.com', 10013)
 forward_to  = ('47.91.242.120', 10013)
-DEBUG       = False
+DEBUG       = True
 
 
 class Forward:
@@ -64,14 +64,15 @@ class TheServer:
 
                 try:
                     self.data = self.s.recv(buffer_size)
-                    #self.data = self.data.decode()
+                    if DEBUG:
+                        self.__log.logMsg(str(len(self.data)) + ' bytes in main loop received')
                     if len(self.data) == 0:
                         self.on_close()
                         break
                     else:
                         self.on_recv()
                 except socket.error as e:
-                    self.__log.logMsg('Socket error: ' + str(e))
+                    self.__log.logMsg('Main loop socket error: ' + str(e))
                     time.sleep(1) 
                     #self.on_close()
                 else:
@@ -84,8 +85,12 @@ class TheServer:
             self.__log.logMsg(str(clientaddr) + ' has connected')
             self.input_list.append(clientsock)
             self.input_list.append(forward)
+            if DEBUG:
+                self.__log.logMsg('New connection list: ' + str(self.input_list))
             self.channel[clientsock] = forward
             self.channel[forward] = clientsock
+            if DEBUG:
+                self.__log.logMsg('New channel dictionary: ' + str(self.channel))
         else:
             self.__log.logMsg("Can't establish connection with remote server.")
             self.__log.logMsg("Closing connection with client side" + str(clientaddr))
@@ -96,6 +101,8 @@ class TheServer:
         #remove objects from input_list
         self.input_list.remove(self.s)
         self.input_list.remove(self.channel[self.s])
+        if DEBUG:
+            self.__log.logMsg('Connection removed. Remaining connection list: ' + str(self.input_list))
         out = self.channel[self.s]
         # close the connection with client
         self.channel[out].close()  # equivalent to do self.s.close()
@@ -104,6 +111,8 @@ class TheServer:
         # delete both objects from channel dict
         del self.channel[out]
         del self.channel[self.s]
+        if DEBUG:
+            self.__log.logMsg('Remaining channel dictionary: ' + str(self.channel))
 
     def extract(self, data, wrind):
         pos1 = 40 + (wrind*64)
@@ -147,8 +156,6 @@ class TheServer:
 
     def process_data(self, data):
         datainhex = data.hex()
-        self.__log.logMsg('Data raw: ' + str(data))
-        self.__log.logMsg('Data as hex: ' + str(datainhex))
         wr = []
         wr_index = 0
         wr_index_max = 20
@@ -164,17 +171,17 @@ class TheServer:
             if wr_index >= wr_index_max:
                 break
         if DEBUG:
-            self.__log.logMsg("Processed Data!")
-            self.__log.logMsg(str(wr))
-            self.__log.logMsg("Submitting Data")
+            self.__log.logMsg('Finished processing data: ' + str(wr))
         self.submit_data(wr)
 
     def on_recv(self):
         data = self.data
-        self.__log.logMsg(str(len(data)))
+        if DEBUG:
+            self.__log.logMsg(str(len(data)) + ' bytes in on_recv')
+            self.__log.logMsg('Data raw: ' + str(data))
+            self.__log.logMsg('Data as hex: ' + str(data.hex()))
         if len(data) == 662: 
             self.process_data(data)
-            #print data.encode('hex')
         self.channel[self.s].send(data)
 
 if __name__ == '__main__':
