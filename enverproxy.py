@@ -147,7 +147,7 @@ class TheServer:
         fhem_server = FHEM('https://' + fhem_DNS + ':8083/fhem?', fhem_user, fhem_pass, self.__log)
         
         for wrdict in wrdata:
-            self.__log.logMsg(str(wrdict['wrid']))
+            self.__log.logMsg('Submitting data for converter: ' + str(wrdict['wrid']) + ' to fhem.')
             values = 'wrid', 'ac', 'dc', 'temp', 'power', 'totalkwh', 'freq'
             for value in values:
                 fhem_server.send_command('set slr_panel ' + value + ' ' + wrdict[value])
