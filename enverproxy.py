@@ -81,7 +81,7 @@ class TheServer:
     def on_accept(self):
         if DEBUG:
             self.__log.logMsg('Entering on_accept')
-        forward = Forward().start(forward_to[0], forward_to[1])
+        forward = Forward(self.__log).start(forward_to[0], forward_to[1])
         clientsock, clientaddr = self.server.accept()
         if forward:
             self.__log.logMsg(str(clientaddr) + ' has connected')
@@ -151,7 +151,7 @@ class TheServer:
         fhem_server = FHEM('https://' + fhem_DNS + ':8083/fhem?', fhem_user, fhem_pass, self.__log)
         
         for wrdict in wrdata:
-            self.__log.logMsg('Submitting data for converter: ' + str(wrdict['wrid']) + ' to fhem.')
+            self.__log.logMsg('Submitting data for converter: ' + str(wrdict['wrid']))
             values = 'wrid', 'ac', 'dc', 'temp', 'power', 'totalkwh', 'freq'
             for value in values:
                 fhem_server.send_command('set slr_panel ' + value + ' ' + wrdict[value])
@@ -187,6 +187,8 @@ class TheServer:
         if len(data) == 662: 
             self.process_data(data)
         self.channel[self.s].send(data)
+        if DEBUG:
+            self.__log.logMsg('Data sent to: ' + str(self.channel[self.s]))
 
 if __name__ == '__main__':
         l = slog('Envertec Proxy', DEBUG)
