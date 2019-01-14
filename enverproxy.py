@@ -79,7 +79,9 @@ class TheServer:
                     continue
 
     def on_accept(self):
-        forward = Forward(self.__log).start(forward_to[0], forward_to[1])
+        if DEBUG:
+            self.__log.logMsg('Entering on_accept')
+        forward = Forward().start(forward_to[0], forward_to[1])
         clientsock, clientaddr = self.server.accept()
         if forward:
             self.__log.logMsg(str(clientaddr) + ' has connected')
@@ -97,6 +99,8 @@ class TheServer:
             clientsock.close()
 
     def on_close(self):
+        if DEBUG:
+            self.__log.logMsg('Entering on_close')
         self.__log.logMsg(str(self.s.getpeername()) + " has disconnected")
         #remove objects from input_list
         self.input_list.remove(self.s)
