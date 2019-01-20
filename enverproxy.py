@@ -75,7 +75,7 @@ class TheServer:
                     self.data = self.s.recv(buffer_size)
                     if DEBUG:
                         self.__log.logMsg('Main loop: ' + str(len(self.data)) + ' bytes received from ' + str(self.s.getpeername()))
-                    if len(self.data) == 0:
+                    if not self.data or len(self.data) == 0:
                         self.on_close()
                         break
                     else:
@@ -83,7 +83,8 @@ class TheServer:
                 except OSError as e:
                     self.__log.logMsg('Main loop socket error: ' + str(e))
                     time.sleep(1) 
-                    #self.on_close()
+                    if e.errno == errno.ENOTCONN:
+                        self.on_close()
                 else:
                     continue
 
@@ -112,15 +113,18 @@ class TheServer:
             self.__log.logMsg('Entering on_close')
         self.__log.logMsg(str(self.s.getpeername()) + " has disconnected")
         #remove objects from input_list
+        out = self.channel[self.s]
         self.input_list.remove(self.s)
-        self.input_list.remove(self.channel[self.s])
+        self.input_list.remove(out)
         if DEBUG:
             self.__log.logMsg('Connection removed. Remaining connection list: ' + str(self.input_list))
-        out = self.channel[self.s]
-        # close the connection with client
-        self.channel[out].close()  # equivalent to do self.s.close()
-        # close the connection with remote server
-        self.channel[self.s].close()
+        try:
+            # close the connection with client
+            self.channel[out].close()  # equivalent to do self.s.close()
+            # close the connection with remote server
+            self.channel[self.s].close()
+        except OSError as e:
+            self.__log.logMsg('On_close socket error: ' + str(e))
         # delete both objects from channel dict
         del self.channel[out]
         del self.channel[self.s]
