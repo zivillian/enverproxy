@@ -188,7 +188,7 @@ class TheServer:
             self.__log.logMsg(str(len(data)) + ' bytes in on_recv')
             self.__log.logMsg('Data raw: ' + str(data))
             self.__log.logMsg('Data as hex: ' + str(data.hex()))
-        if len(data) == 662: 
+        if len(data) == 982: 
             self.process_data(data)
         self.channel[self.s].send(data)
         if DEBUG:
