@@ -118,7 +118,7 @@ class TheServer:
         try:
             # close the connection with client
             self.__log.logMsg(str(in_s.getpeername()) + " has disconnected")
-            in_s.close()  # equivalent to do self.s.close()
+            in_s.close()
         except OSError as e:
             self.__log.logMsg('On_close socket error with ' + str(in_s) + ': ' + str(e))
         try:
