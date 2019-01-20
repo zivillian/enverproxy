@@ -67,10 +67,10 @@ class TheServer:
                 self.__log.logMsg('Inputready: ' + str(inputready))
             for self.s in inputready:
                 if self.s == self.server:
-                    # proxy server has connection request
+                    # proxy server has new connection request
                     self.on_accept()
                     break
-
+                # get the data
                 try:
                     self.data = self.s.recv(buffer_size)
                     if DEBUG:
