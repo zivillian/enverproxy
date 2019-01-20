@@ -16,9 +16,11 @@ from FHEM import FHEM
 # But when buffer get to high or delay go too down, you can broke things
 buffer_size = 4096
 delay       = 0.0001
-forward_to  = ('www.envertecportal.com', 10013)
-forward_to  = ('47.91.242.120', 10013)
+listen_port = 10013
+forward_to  = ('www.envertecportal.com', listen_port)
+forward_to  = ('47.91.242.120', listen_port)
 DEBUG       = True
+
 
 
 class Forward:
@@ -33,7 +35,7 @@ class Forward:
         try:
             self.forward.connect((host, port))
             return self.forward
-        except Exception as e:
+        except OSError as e:
             self.__log.logMsg('Forward produced error: ' + str(e))
             return False
 
@@ -63,19 +65,20 @@ class TheServer:
                 self.__log.logMsg('Inputready: ' + str(inputready))
             for self.s in inputready:
                 if self.s == self.server:
+                    # proxy server has connection request
                     self.on_accept()
                     break
 
                 try:
                     self.data = self.s.recv(buffer_size)
                     if DEBUG:
-                        self.__log.logMsg(str(len(self.data)) + ' bytes in main loop received')
+                        self.__log.logMsg('Main loop: ' + str(len(self.data)) + ' bytes received from ' + str(self.s.getpeername()))
                     if len(self.data) == 0:
                         self.on_close()
                         break
                     else:
                         self.on_recv()
-                except socket.error as e:
+                except OSError as e:
                     self.__log.logMsg('Main loop socket error: ' + str(e))
                     time.sleep(1) 
                     #self.on_close()
@@ -155,48 +158,78 @@ class TheServer:
         fhem_server = FHEM('https://' + fhem_DNS + ':8083/fhem?', fhem_user, fhem_pass, self.__log)
         
         for wrdict in wrdata:
-            self.__log.logMsg('Submitting data for converter: ' + str(wrdict['wrid']))
+            if DEBUG:
+                self.__log.logMsg('Submitting data for converter: ' + str(wrdict['wrid']) + ' to FHEM')
             values = 'wrid', 'ac', 'dc', 'temp', 'power', 'totalkwh', 'freq'
             for value in values:
                 fhem_server.send_command('set slr_panel ' + value + ' ' + wrdict[value])
                 if DEBUG:
                     self.__log.logMsg('FHEM command: set slr_panel ' + str(value) + ' ' + str(wrdict[value]))
+        self.__log.logMsg('Data submitted to FHEM')
 
     def process_data(self, data):
         datainhex = data.hex()
         wr = []
         wr_index = 0
         wr_index_max = 20
+        if DEBUG:
+            self.__log.logMsg("Processing Data")
         while True:
-            if DEBUG:
-                self.__log.logMsg("Processing Data")
             response = self.extract(datainhex, wr_index)
             if response:
                 if DEBUG:
-                    self.__log.logMsg(".")
+                    self.__log.logMsg('Pocessed data from microconverter with ID ' + str(response['wrid']))
                 wr.append(response)
             wr_index += 1
             if wr_index >= wr_index_max:
                 break
         if DEBUG:
-            self.__log.logMsg('Finished processing data: ' + str(wr))
+            self.__log.logMsg('Finished processing data for ' + str(len(wr)) + ' microconverter: ' + str(wr))
+        else:
+            self.__log.logMsg('Processed data for ' + str(len(wr)) + ' microconverter')
         self.submit_data(wr)
+
+    def handshake(self, data):
+        data = bytearray(data)
+        # Microconverter starts with 680030681006
+        if data[:6].hex() == '680030681006':
+            # microconverter expects reply starting with 680030681007
+            data[5] = 7
+            return data
+        else:
+            self.__log.logMsg('Microconverter sent wrong start sequence ' + str(data[:6].hex()))
 
     def on_recv(self):
         data = self.data
         if DEBUG:
             self.__log.logMsg(str(len(data)) + ' bytes in on_recv')
-            self.__log.logMsg('Data raw: ' + str(data))
             self.__log.logMsg('Data as hex: ' + str(data.hex()))
-        if len(data) == 982: 
-            self.process_data(data)
+        if self.s.getsockname()[1] == listen_port:
+            # receving data from a client
+            if DEBUG:
+                self.__log.logMsg('Data is coming from a client')
+            if len(data) == 48:
+                # converter initiates connection
+                # create reply packet
+                reply = self.handshake(data)
+                if DEBUG:
+                    self.__log.logMsg('Replying to handshake with data ' + str(reply.hex()))
+                self.s.send(reply)
+                if DEBUG:
+                    self.__log.logMsg('Reply sent to: ' + str(self.s))
+            elif len(data) == 982:
+                # payload from converter
+                self.process_data(data)
+            else:
+                self.__log.logMsg('Client sent message with unknown content and length ' + str(len(data)))
+        # forward data to proxy pair
         self.channel[self.s].send(data)
         if DEBUG:
-            self.__log.logMsg('Data sent to: ' + str(self.channel[self.s]))
+            self.__log.logMsg('Data forwarded to: ' + str(self.channel[self.s]))
 
 if __name__ == '__main__':
         l = slog('Envertec Proxy', DEBUG)
-        server = TheServer('', 10013, l)
+        server = TheServer('', listen_port, l)
         try:
             l.logMsg('Starting server')
             server.main_loop()
