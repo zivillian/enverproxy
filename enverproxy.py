@@ -76,6 +76,7 @@ class TheServer:
                     if DEBUG:
                         self.__log.logMsg('Main loop: ' + str(len(self.data)) + ' bytes received from ' + str(self.s.getpeername()))
                     if not self.data or len(self.data) == 0:
+                        # Client closed the connection
                         self.on_close()
                         break
                     else:
@@ -84,6 +85,7 @@ class TheServer:
                     self.__log.logMsg('Main loop socket error: ' + str(e))
                     time.sleep(1) 
                     if e.errno == errno.ENOTCONN:
+                        # Connection was closed abnormally
                         self.on_close()
                 else:
                     continue
@@ -111,23 +113,27 @@ class TheServer:
     def on_close(self):
         if DEBUG:
             self.__log.logMsg('Entering on_close')
-        self.__log.logMsg(str(self.s.getpeername()) + " has disconnected")
-        #remove objects from input_list
-        out = self.channel[self.s]
-        self.input_list.remove(self.s)
-        self.input_list.remove(out)
-        if DEBUG:
-            self.__log.logMsg('Connection removed. Remaining connection list: ' + str(self.input_list))
+        in_s  = self.s
+        out_s = self.channel[self.s]
         try:
             # close the connection with client
-            self.channel[out].close()  # equivalent to do self.s.close()
-            # close the connection with remote server
-            self.channel[self.s].close()
+            self.__log.logMsg(str(in_s.getpeername()) + " has disconnected")
+            in_s.close()  # equivalent to do self.s.close()
         except OSError as e:
-            self.__log.logMsg('On_close socket error: ' + str(e))
+            self.__log.logMsg('On_close socket error with ' + str(in_s) + ': ' + str(e))
+        try:
+            # close the connection with remote server
+            out_s.close()
+        except OSError as e:
+            self.__log.logMsg('On_close socket error with ' + str(out_s) + ': ' + str(e))
+        #remove objects from input_list
+        self.input_list.remove(in_s)
+        self.input_list.remove(out_s)
+        if DEBUG:
+            self.__log.logMsg('Remaining connection list: ' + str(self.input_list))
         # delete both objects from channel dict
-        del self.channel[out]
-        del self.channel[self.s]
+        del self.channel[in_s]
+        del self.channel[out_s]
         if DEBUG:
             self.__log.logMsg('Remaining channel dictionary: ' + str(self.channel))
 
@@ -190,7 +196,7 @@ class TheServer:
             response = self.extract(datainhex, wr_index)
             if response:
                 if DEBUG:
-                    self.__log.logMsg('Pocessed data from microconverter with ID ' + str(response['wrid']))
+                    self.__log.logMsg('Decoded data from microconverter with ID ' + str(response['wrid']))
                 wr.append(response)
             wr_index += 1
             if wr_index >= wr_index_max:
