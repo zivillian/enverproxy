@@ -24,6 +24,7 @@ DEBUG       = True
 
 
 class Forward:
+
     def __init__(self, l=None):
         if l == None:
             self.__log = slog('Forward class', True)
@@ -38,6 +39,7 @@ class Forward:
         except OSError as e:
             self.__log.logMsg('Forward produced error: ' + str(e))
             return False
+
 
 class TheServer:
     input_list = []
@@ -226,6 +228,7 @@ class TheServer:
         self.channel[self.s].send(data)
         if DEBUG:
             self.__log.logMsg('Data forwarded to: ' + str(self.channel[self.s]))
+
 
 if __name__ == '__main__':
         l = slog('Envertec Proxy', DEBUG)
