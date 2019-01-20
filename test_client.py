@@ -9,7 +9,7 @@ s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
 # get local machine name
 host = socket.gethostname()
-host = '192.168.123.14'
+host = '192.168.123.214'
 port = 10013
 buffer_size = 4096
 

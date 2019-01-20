@@ -129,24 +129,30 @@ class TheServer:
 
     def extract(self, data, wrind):
         pos1 = 40 + (wrind*64)
-        # Define
-        d_wr_id = data[pos1:pos1+8]
-        d_hex_dc = data[pos1+12:pos1+12+4]
-        d_hex_power = data[pos1+16:pos1+16+4]
-        d_hex_total = data[pos1+20:pos1+20+8]
-        d_hex_temp = data[pos1+28:pos1+28+4]
-        d_hex_ac = data[pos1+32:pos1+32+4]
-        d_hex_freq = data[pos1+36:pos1+36+4]
+        # Extract information from bytearray
+        #               1        2                    4        4    5    5    6        6    7    7 
+        # 0      6      2        0                    0        8    2    6    0        8    2    6
+        # -------------------------------------------------------------------------------------------
+        # cmd    cmd    account                       wrid     ?    dc   pwr  totalkWh temp ac   F
+        # -------------------------------------------------------------------------------------------
+        # 6803d6 681004 yyyyyyyy 00000000000000000000 xxxxxxxx 2202 40d0 352b 001c5f39 1d66 3872 3204
+        #
+        d_wr_id         = data[pos1:pos1+8]
+        d_hex_dc        = data[pos1+12:pos1+12+4]
+        d_hex_power     = data[pos1+16:pos1+16+4]
+        d_hex_total     = data[pos1+20:pos1+20+8]
+        d_hex_temp      = data[pos1+28:pos1+28+4]
+        d_hex_ac        = data[pos1+32:pos1+32+4]
+        d_hex_freq      = data[pos1+36:pos1+36+4]
         d_hex_remaining = data[pos1+40:pos1+40+24]
-
         # Calculation
-        d_dez_dc = '{0:.2f}'.format(int(d_hex_dc, 16)/512)
+        d_dez_dc    = '{0:.2f}'.format(int(d_hex_dc, 16)/512)
         d_dez_power = '{0:.2f}'.format(int(d_hex_power, 16)/64)
         d_dez_total = '{0:.2f}'.format(int(d_hex_total, 16)/8192)
-        d_dez_temp = '{0:.2f}'.format(((int(d_hex_temp[0:2], 16)*256+int(d_hex_temp[2:4], 16))/ 128)-40)
-        d_dez_ac = '{0:.2f}'.format(int(d_hex_ac, 16)/64)
-        d_dez_freq = '{0:.2f}'.format(int(d_hex_freq[0:2], 16)+int(d_hex_freq[2:4], 16)/ 256)
-
+        d_dez_temp  = '{0:.2f}'.format(((int(d_hex_temp[0:2], 16)*256+int(d_hex_temp[2:4], 16))/ 128)-40)
+        d_dez_ac    = '{0:.2f}'.format(int(d_hex_ac, 16)/64)
+        d_dez_freq  = '{0:.2f}'.format(int(d_hex_freq[0:2], 16)+int(d_hex_freq[2:4], 16)/ 256)
+        # Ignore if converter id is zero
         if int(d_wr_id) != 0:
             result = {'wrid' : d_wr_id, 'dc' : d_dez_dc, 'power' : d_dez_power, 'totalkwh' : d_dez_total, 'temp' : d_dez_temp, 'ac' : d_dez_ac, 'freq' : d_dez_freq, 'remaining' : d_hex_remaining}
             return result
