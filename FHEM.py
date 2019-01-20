@@ -25,19 +25,22 @@ class FHEM:
             # Suppress error warnings of unverified https requests
             requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
+
     def __repr__(self):
         return 'FHEM(' + self.__BASEURL + ', ' + self.__session.auth[0] + ', ' + self.__session.auth[1] + ', ' + self.__log + ')'
+
     
     def get_token(self, url):
         try:
             r = self.__session.get(url)
-        except Exception as e:
+        except requests.exceptions.RequestException as e:
             self.__log.logMsg('Requests error when getting token: ' + str(e))
         else:
             token = r.text
             token = token[token.find('csrf_'):]
             token = token[:token.find("\'")]
         return token
+
     
     def send_command(self, cmd):
         # cmd is the FHEM command
@@ -49,6 +52,6 @@ class FHEM:
         url   = url + 'cmd=' + cmd
         try:
             r = self.__session.get(url, data=data)
-        except Exception as e:
+        except requests.exceptions.RequestException as e:
             self.__log.logMsg('Requests error when posting command: ' + str(e))
         
