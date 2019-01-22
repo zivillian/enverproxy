@@ -9,6 +9,7 @@ import select
 import time
 import sys
 import os
+import errno
 from slog import slog
 from FHEM import FHEM
 
@@ -84,7 +85,7 @@ class TheServer:
                 except OSError as e:
                     self.__log.logMsg('Main loop socket error: ' + str(e))
                     time.sleep(1) 
-                    if e.errno == errno.ENOTCONN:
+                    if e.errno == errno.ENOTCONN or e.errno == errno.ECONNRESET:
                         # Connection was closed abnormally
                         self.on_close()
                 else:
