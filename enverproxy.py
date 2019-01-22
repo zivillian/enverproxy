@@ -231,11 +231,13 @@ class TheServer:
                 # converter initiates connection
                 # create reply packet
                 reply = self.handshake(data)
+                """
                 if DEBUG:
                     self.__log.logMsg('Replying to handshake with data ' + str(reply.hex()))
                 self.s.send(reply)
                 if DEBUG:
                     self.__log.logMsg('Reply sent to: ' + str(self.s))
+                """
             elif len(data) == 982:
                 # payload from converter
                 self.process_data(data)
