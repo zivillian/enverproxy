@@ -85,7 +85,7 @@ class TheServer:
                 except OSError as e:
                     self.__log.logMsg('Main loop socket error: ' + str(e))
                     time.sleep(1) 
-                    if e.errno == errno.ENOTCONN or e.errno == errno.ECONNRESET:
+                    if e.errno in (errno.ENOTCONN, errno.ECONNRESET):
                         # Connection was closed abnormally
                         self.on_close()
                 else:
