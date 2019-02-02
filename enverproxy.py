@@ -20,7 +20,6 @@ config['internal']['keys']      = "['buffer_size', 'delay', 'listen_port', 'DEBU
 
 
 class Forward:
-
     def __init__(self, l=None):
         if l == None:
             self.__log = slog('Forward class', True)
@@ -252,7 +251,7 @@ class TheServer:
 
 if __name__ == '__main__':
         l = slog('Envertec Proxy')
-        l.logMsg('Starting server (v' + str(config['internal']['version']) + ')')
+        l.logMsg('Starting server (v' + config['internal']['version'] + ')')
         if os.path.isfile(config['internal']['conf_file']):
            config.read(config['internal']['conf_file'])
            if 'enverproxy' not in config:
