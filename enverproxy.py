@@ -53,12 +53,12 @@ class TheServer:
     def main_loop(self):
         self.input_list.append(self.server)
         while True:
-            if config['enverproxy']['DEBUG']:
+            if config['enverproxy']['DEBUG'].lower() == 'true':
                 self.__log.logMsg('Entering main loop')
             time.sleep(float(config['enverproxy']['delay']))
             ss = select.select
             inputready, outputready, exceptready = ss(self.input_list, [], [])
-            if config['enverproxy']['DEBUG']:
+            if config['enverproxy']['DEBUG'].lower() == 'true':
                 self.__log.logMsg('Inputready: ' + str(inputready))
             for self.s in inputready:
                 if self.s == self.server:
@@ -68,7 +68,7 @@ class TheServer:
                 # get the data
                 try:
                     self.data = self.s.recv(int(config['enverproxy']['buffer_size']))
-                    if config['enverproxy']['DEBUG']:
+                    if config['enverproxy']['DEBUG'].lower() == 'true':
                         self.__log.logMsg('Main loop: ' + str(len(self.data)) + ' bytes received from ' + str(self.s.getpeername()))
                     if not self.data or len(self.data) == 0:
                         # Client closed the connection
@@ -86,7 +86,7 @@ class TheServer:
                     continue
 
     def on_accept(self):
-        if config['enverproxy']['DEBUG']:
+        if config['enverproxy']['DEBUG'].lower() == 'true':
             self.__log.logMsg('Entering on_accept')
         forward = Forward(self.__log).start(config['enverproxy']['forward_IP'], int(config['enverproxy']['forward_port']))
         clientsock, clientaddr = self.server.accept()
@@ -94,11 +94,11 @@ class TheServer:
             self.__log.logMsg(str(clientaddr) + ' has connected')
             self.input_list.append(clientsock)
             self.input_list.append(forward)
-            if config['enverproxy']['DEBUG']:
+            if config['enverproxy']['DEBUG'].lower() == 'true':
                 self.__log.logMsg('New connection list: ' + str(self.input_list))
             self.channel[clientsock] = forward
             self.channel[forward] = clientsock
-            if config['enverproxy']['DEBUG']:
+            if config['enverproxy']['DEBUG'].lower() == 'true':
                 self.__log.logMsg('New channel dictionary: ' + str(self.channel))
         else:
             self.__log.logMsg("Can't establish connection with remote server.")
@@ -106,7 +106,7 @@ class TheServer:
             clientsock.close()
 
     def on_close(self):
-        if config['enverproxy']['DEBUG']:
+        if config['enverproxy']['DEBUG'].lower() == 'true':
             self.__log.logMsg('Entering on_close')
         in_s  = self.s
         out_s = self.channel[self.s]
@@ -124,12 +124,12 @@ class TheServer:
         #remove objects from input_list
         self.input_list.remove(in_s)
         self.input_list.remove(out_s)
-        if config['enverproxy']['DEBUG']:
+        if config['enverproxy']['DEBUG'].lower() == 'true':
             self.__log.logMsg('Remaining connection list: ' + str(self.input_list))
         # delete both objects from channel dict
         del self.channel[in_s]
         del self.channel[out_s]
-        if config['enverproxy']['DEBUG']:
+        if config['enverproxy']['DEBUG'].lower() == 'true':
             self.__log.logMsg('Remaining channel dictionary: ' + str(self.channel))
 
     def extract(self, data, wrind):
@@ -171,14 +171,14 @@ class TheServer:
         ID2device = ast.literal_eval(config['enverproxy']['id2device'])
         fhem_server = FHEM(url, user, password, self.__log)
         for wrdict in wrdata:
-            if config['enverproxy']['DEBUG']:
+            if config['enverproxy']['DEBUG'].lower() == 'true':
                 self.__log.logMsg('Submitting data for converter: ' + str(wrdict['wrid']) + ' to FHEM')
             values = ['wrid', 'ac', 'dc', 'temp', 'power', 'totalkwh', 'freq']
             for value in values:
                 if wrdict['wrid'] in ID2device:
                     fhem_cmd = 'set ' + ID2device[wrdict['wrid']] + ' ' + value + ' ' + wrdict[value]
                     fhem_server.send_command(fhem_cmd)
-                    if config['enverproxy']['DEBUG']:
+                    if config['enverproxy']['DEBUG'].lower() == 'true':
                         self.__log.logMsg('FHEM command: ' + fhem_cmd)
                 else:
                     self.__log.logMsg('No FHEM device known for converter ID ' + wrdict['wrid'])
@@ -189,18 +189,18 @@ class TheServer:
         wr = []
         wr_index = 0
         wr_index_max = 20
-        if config['enverproxy']['DEBUG']:
+        if config['enverproxy']['DEBUG'].lower() == 'true':
             self.__log.logMsg("Processing Data")
         while True:
             response = self.extract(datainhex, wr_index)
             if response:
-                if config['enverproxy']['DEBUG']:
+                if config['enverproxy']['DEBUG'].lower() == 'true':
                     self.__log.logMsg('Decoded data from microconverter with ID ' + str(response['wrid']))
                 wr.append(response)
             wr_index += 1
             if wr_index >= wr_index_max:
                 break
-        if config['enverproxy']['DEBUG']:
+        if config['enverproxy']['DEBUG'].lower() == 'true':
             self.__log.logMsg('Finished processing data for ' + str(len(wr)) + ' microconverter: ' + str(wr))
         else:
             self.__log.logMsg('Processed data for ' + str(len(wr)) + ' microconverter')
@@ -218,12 +218,12 @@ class TheServer:
 
     def on_recv(self):
         data = self.data
-        if config['enverproxy']['DEBUG']:
+        if config['enverproxy']['DEBUG'].lower() == 'true':
             self.__log.logMsg(str(len(data)) + ' bytes in on_recv')
             self.__log.logMsg('Data as hex: ' + str(data.hex()))
         if self.s.getsockname()[1] == int(config['enverproxy']['listen_port']):
             # receving data from a client
-            if config['enverproxy']['DEBUG']:
+            if config['enverproxy']['DEBUG'].lower() == 'true':
                 self.__log.logMsg('Data is coming from a client')
             if (len(data) == 48) and (data[:6].hex() == '680030681006'):
                 # converter initiates connection
@@ -232,10 +232,10 @@ class TheServer:
                 """
                 # This part is simulating handshake with envertecportal.com
                 # Keep disabled if working as proxy between Enverbridge and envertecportal.com
-                if config['enverproxy']['DEBUG']:
+                if config['enverproxy']['DEBUG'].lower() == 'true':
                     self.__log.logMsg('Replying to handshake with data ' + str(reply.hex()))
                 self.s.send(reply)
-                if config['enverproxy']['DEBUG']:
+                if config['enverproxy']['DEBUG'].lower() == 'true':
                     self.__log.logMsg('Reply sent to: ' + str(self.s))
                 """
             elif (len(data) == 982) and (data[:6].hex() == '6803d6681004'):
@@ -245,7 +245,7 @@ class TheServer:
                 self.__log.logMsg('Client sent message with unknown content and length ' + str(len(data)))
         # forward data to proxy peer
         self.channel[self.s].send(data)
-        if config['enverproxy']['DEBUG']:
+        if config['enverproxy']['DEBUG'].lower() == 'true':
             self.__log.logMsg('Data forwarded to: ' + str(self.channel[self.s]))
 
 
