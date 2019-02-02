@@ -227,18 +227,20 @@ class TheServer:
             # receving data from a client
             if DEBUG:
                 self.__log.logMsg('Data is coming from a client')
-            if len(data) == 48:
+            if (len(data) == 48) and (data[:6].hex() == '680030681006'):
                 # converter initiates connection
                 # create reply packet
                 reply = self.handshake(data)
                 """
+                # This part is simulating handshake with envertecportal.com
+                # Keep disabled if working as proxy between Enverbridge and envertecportal.com
                 if DEBUG:
                     self.__log.logMsg('Replying to handshake with data ' + str(reply.hex()))
                 self.s.send(reply)
                 if DEBUG:
                     self.__log.logMsg('Reply sent to: ' + str(self.s))
                 """
-            elif len(data) == 982:
+            elif (len(data) == 982) and (data[:6].hex() == '6803d6681004'):
                 # payload from converter
                 self.process_data(data)
             else:
