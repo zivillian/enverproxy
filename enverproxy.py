@@ -13,6 +13,7 @@ import errno
 from slog import slog
 from FHEM import FHEM
 
+proxy_ver   = 1.0
 # Changing the buffer_size and delay, you can improve the speed and bandwidth.
 # But when buffer get to high or delay go too down, you can broke things
 buffer_size = 4096
@@ -265,7 +266,7 @@ if __name__ == '__main__':
         l = slog('Envertec Proxy', DEBUG)
         server = TheServer('', listen_port, l)
         try:
-            l.logMsg('Starting server')
+            l.logMsg('Starting server (v' + str(proxy_ver) + ')')
             server.main_loop()
         except KeyboardInterrupt:
             l.logMsg("Ctrl C - Stopping server")
