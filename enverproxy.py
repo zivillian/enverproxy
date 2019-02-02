@@ -18,10 +18,20 @@ from FHEM import FHEM
 buffer_size = 4096
 delay       = 0.0001
 listen_port = 10013
-forward_to  = ('www.envertecportal.com', listen_port)
+# using the DNS name does not work, as DNS server redirects to proxy
+# forward_to     = ('www.envertecportal.com', listen_port)
 forward_to  = ('47.91.242.120', listen_port)
 DEBUG       = True
-
+# Necessary data to send data to FHEM
+fhem        = {
+    'user'     : 'enver',
+    'password' : 'Test',
+    'host'     : 'homeservice.eitelwein.net'
+}
+# dictionary connecting converter ID to FHEM device
+ID2device   = {
+    '11127983': 'slr_panel'
+}
 
 
 class Forward:
@@ -171,19 +181,19 @@ class TheServer:
     def submit_data(self, wrdata):
         # Can be https as well. Also: if you use another port then 80 or 443 do not forget to add the port number.
         # user and password.
-        fhem_user = 'enver'
-        fhem_pass = 'Test'
-        fhem_DNS  = 'homeservice.eitelwein.net'
-        fhem_server = FHEM('https://' + fhem_DNS + ':8083/fhem?', fhem_user, fhem_pass, self.__log)
-        
+        fhem_server = FHEM('https://' + fhem['host'] + ':8083/fhem?', fhem['user'], fhem['password'], self.__log)
         for wrdict in wrdata:
             if DEBUG:
                 self.__log.logMsg('Submitting data for converter: ' + str(wrdict['wrid']) + ' to FHEM')
             values = 'wrid', 'ac', 'dc', 'temp', 'power', 'totalkwh', 'freq'
             for value in values:
-                fhem_server.send_command('set slr_panel ' + value + ' ' + wrdict[value])
-                if DEBUG:
-                    self.__log.logMsg('FHEM command: set slr_panel ' + str(value) + ' ' + str(wrdict[value]))
+                if wrdict['wrid'] in ID2device:
+                    fhem_cmd = 'set ' + ID2device[wrdict['wrid']] + ' ' + value + ' ' + wrdict[value]
+                    fhem_server.send_command(fhem_cmd)
+                    if DEBUG:
+                        self.__log.logMsg('FHEM command: ' + fhem_cmd)
+                else:
+                    self.__log.logMsg('No FHEM device known for converter ID ' + wrdict['wrid'])
         self.__log.logMsg('Data submitted to FHEM')
 
     def process_data(self, data):
