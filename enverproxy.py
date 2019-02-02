@@ -174,7 +174,7 @@ class TheServer:
         for wrdict in wrdata:
             if config['enverproxy']['DEBUG']:
                 self.__log.logMsg('Submitting data for converter: ' + str(wrdict['wrid']) + ' to FHEM')
-            values = 'wrid', 'ac', 'dc', 'temp', 'power', 'totalkwh', 'freq'
+            values = ['wrid', 'ac', 'dc', 'temp', 'power', 'totalkwh', 'freq']
             for value in values:
                 if wrdict['wrid'] in ID2device:
                     fhem_cmd = 'set ' + ID2device[wrdict['wrid']] + ' ' + value + ' ' + wrdict[value]
@@ -244,7 +244,7 @@ class TheServer:
                 self.process_data(data)
             else:
                 self.__log.logMsg('Client sent message with unknown content and length ' + str(len(data)))
-        # forward data to proxy pair
+        # forward data to proxy peer
         self.channel[self.s].send(data)
         if config['enverproxy']['DEBUG']:
             self.__log.logMsg('Data forwarded to: ' + str(self.channel[self.s]))
