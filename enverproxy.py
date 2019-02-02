@@ -1,8 +1,5 @@
 #!/usr/bin/python3
-# This is a simple port-forward / proxy, written using only the default python
-# library. If you want to make a suggestion or fix something you can contact-me
-# at voorloop_at_gmail.com
-# Distributed over IDC(I Don't Care) license
+# This is a simple port-forward / proxy for EnvertecBridge
 
 import socket
 import select
@@ -10,29 +7,16 @@ import time
 import sys
 import os
 import errno
+import configparser
+import ast
 from slog import slog
 from FHEM import FHEM
 
-proxy_ver   = 1.0
-# Changing the buffer_size and delay, you can improve the speed and bandwidth.
-# But when buffer get to high or delay go too down, you can broke things
-buffer_size = 4096
-delay       = 0.0001
-listen_port = 10013
-# using the DNS name does not work, as DNS server redirects to proxy
-# forward_to     = ('www.envertecportal.com', listen_port)
-forward_to  = ('47.91.242.120', listen_port)
-DEBUG       = True
-# Necessary data to send data to FHEM
-fhem        = {
-    'user'     : 'enver',
-    'password' : 'Test',
-    'host'     : 'homeservice.eitelwein.net'
-}
-# dictionary connecting converter ID to FHEM device
-ID2device   = {
-    '11127983': 'slr_panel'
-}
+config = configparser.ConfigParser()
+config['internal']={}
+config['internal']['conf_file'] = './enverproxy.conf'
+config['internal']['version']   = '1.1'
+config['internal']['keys']      = "['buffer_size', 'delay', 'listen_port', 'DEBUG', 'forward_IP', 'forward_port', 'user', 'password', 'host', 'ID2device']"
 
 
 class Forward:
@@ -70,12 +54,12 @@ class TheServer:
     def main_loop(self):
         self.input_list.append(self.server)
         while True:
-            if DEBUG:
+            if config['enverproxy']['DEBUG']:
                 self.__log.logMsg('Entering main loop')
-            time.sleep(delay)
+            time.sleep(float(config['enverproxy']['delay']))
             ss = select.select
             inputready, outputready, exceptready = ss(self.input_list, [], [])
-            if DEBUG:
+            if config['enverproxy']['DEBUG']:
                 self.__log.logMsg('Inputready: ' + str(inputready))
             for self.s in inputready:
                 if self.s == self.server:
@@ -84,8 +68,8 @@ class TheServer:
                     break
                 # get the data
                 try:
-                    self.data = self.s.recv(buffer_size)
-                    if DEBUG:
+                    self.data = self.s.recv(int(config['enverproxy']['buffer_size']))
+                    if config['enverproxy']['DEBUG']:
                         self.__log.logMsg('Main loop: ' + str(len(self.data)) + ' bytes received from ' + str(self.s.getpeername()))
                     if not self.data or len(self.data) == 0:
                         # Client closed the connection
@@ -103,19 +87,19 @@ class TheServer:
                     continue
 
     def on_accept(self):
-        if DEBUG:
+        if config['enverproxy']['DEBUG']:
             self.__log.logMsg('Entering on_accept')
-        forward = Forward(self.__log).start(forward_to[0], forward_to[1])
+        forward = Forward(self.__log).start(config['enverproxy']['forward_IP'], int(config['enverproxy']['forward_port']))
         clientsock, clientaddr = self.server.accept()
         if forward:
             self.__log.logMsg(str(clientaddr) + ' has connected')
             self.input_list.append(clientsock)
             self.input_list.append(forward)
-            if DEBUG:
+            if config['enverproxy']['DEBUG']:
                 self.__log.logMsg('New connection list: ' + str(self.input_list))
             self.channel[clientsock] = forward
             self.channel[forward] = clientsock
-            if DEBUG:
+            if config['enverproxy']['DEBUG']:
                 self.__log.logMsg('New channel dictionary: ' + str(self.channel))
         else:
             self.__log.logMsg("Can't establish connection with remote server.")
@@ -123,7 +107,7 @@ class TheServer:
             clientsock.close()
 
     def on_close(self):
-        if DEBUG:
+        if config['enverproxy']['DEBUG']:
             self.__log.logMsg('Entering on_close')
         in_s  = self.s
         out_s = self.channel[self.s]
@@ -141,12 +125,12 @@ class TheServer:
         #remove objects from input_list
         self.input_list.remove(in_s)
         self.input_list.remove(out_s)
-        if DEBUG:
+        if config['enverproxy']['DEBUG']:
             self.__log.logMsg('Remaining connection list: ' + str(self.input_list))
         # delete both objects from channel dict
         del self.channel[in_s]
         del self.channel[out_s]
-        if DEBUG:
+        if config['enverproxy']['DEBUG']:
             self.__log.logMsg('Remaining channel dictionary: ' + str(self.channel))
 
     def extract(self, data, wrind):
@@ -182,16 +166,20 @@ class TheServer:
     def submit_data(self, wrdata):
         # Can be https as well. Also: if you use another port then 80 or 443 do not forget to add the port number.
         # user and password.
-        fhem_server = FHEM('https://' + fhem['host'] + ':8083/fhem?', fhem['user'], fhem['password'], self.__log)
+        url       = 'https://' + config['enverproxy']['host'] + ':8083/fhem?'
+        user      = config['enverproxy']['user']
+        password  = config['enverproxy']['password']
+        ID2device = ast.literal_eval(config['enverproxy']['id2device'])
+        fhem_server = FHEM(url, user, password, self.__log)
         for wrdict in wrdata:
-            if DEBUG:
+            if config['enverproxy']['DEBUG']:
                 self.__log.logMsg('Submitting data for converter: ' + str(wrdict['wrid']) + ' to FHEM')
             values = 'wrid', 'ac', 'dc', 'temp', 'power', 'totalkwh', 'freq'
             for value in values:
                 if wrdict['wrid'] in ID2device:
                     fhem_cmd = 'set ' + ID2device[wrdict['wrid']] + ' ' + value + ' ' + wrdict[value]
                     fhem_server.send_command(fhem_cmd)
-                    if DEBUG:
+                    if config['enverproxy']['DEBUG']:
                         self.__log.logMsg('FHEM command: ' + fhem_cmd)
                 else:
                     self.__log.logMsg('No FHEM device known for converter ID ' + wrdict['wrid'])
@@ -202,18 +190,18 @@ class TheServer:
         wr = []
         wr_index = 0
         wr_index_max = 20
-        if DEBUG:
+        if config['enverproxy']['DEBUG']:
             self.__log.logMsg("Processing Data")
         while True:
             response = self.extract(datainhex, wr_index)
             if response:
-                if DEBUG:
+                if config['enverproxy']['DEBUG']:
                     self.__log.logMsg('Decoded data from microconverter with ID ' + str(response['wrid']))
                 wr.append(response)
             wr_index += 1
             if wr_index >= wr_index_max:
                 break
-        if DEBUG:
+        if config['enverproxy']['DEBUG']:
             self.__log.logMsg('Finished processing data for ' + str(len(wr)) + ' microconverter: ' + str(wr))
         else:
             self.__log.logMsg('Processed data for ' + str(len(wr)) + ' microconverter')
@@ -231,12 +219,12 @@ class TheServer:
 
     def on_recv(self):
         data = self.data
-        if DEBUG:
+        if config['enverproxy']['DEBUG']:
             self.__log.logMsg(str(len(data)) + ' bytes in on_recv')
             self.__log.logMsg('Data as hex: ' + str(data.hex()))
-        if self.s.getsockname()[1] == listen_port:
+        if self.s.getsockname()[1] == int(config['enverproxy']['listen_port']):
             # receving data from a client
-            if DEBUG:
+            if config['enverproxy']['DEBUG']:
                 self.__log.logMsg('Data is coming from a client')
             if (len(data) == 48) and (data[:6].hex() == '680030681006'):
                 # converter initiates connection
@@ -245,10 +233,10 @@ class TheServer:
                 """
                 # This part is simulating handshake with envertecportal.com
                 # Keep disabled if working as proxy between Enverbridge and envertecportal.com
-                if DEBUG:
+                if config['enverproxy']['DEBUG']:
                     self.__log.logMsg('Replying to handshake with data ' + str(reply.hex()))
                 self.s.send(reply)
-                if DEBUG:
+                if config['enverproxy']['DEBUG']:
                     self.__log.logMsg('Reply sent to: ' + str(self.s))
                 """
             elif (len(data) == 982) and (data[:6].hex() == '6803d6681004'):
@@ -258,15 +246,30 @@ class TheServer:
                 self.__log.logMsg('Client sent message with unknown content and length ' + str(len(data)))
         # forward data to proxy pair
         self.channel[self.s].send(data)
-        if DEBUG:
+        if config['enverproxy']['DEBUG']:
             self.__log.logMsg('Data forwarded to: ' + str(self.channel[self.s]))
 
 
 if __name__ == '__main__':
-        l = slog('Envertec Proxy', DEBUG)
-        server = TheServer('', listen_port, l)
+        l = slog('Envertec Proxy')
+        l.logMsg('Starting server (v' + str(config['internal']['version']) + ')')
+        if os.path.isfile(config['internal']['conf_file']):
+           config.read(config['internal']['conf_file'])
+           if 'enverproxy' not in config:
+               l.logMsg('Section [enverproxy] is missing in config file ' + config['internal']['conf_file'])
+               l.logMsg('Stopping server')
+               sys.exit(1)
+           for k in ast.literal_eval(config['internal']['keys']):
+               if k not in config['enverproxy']:
+                   l.logMsg('Config variable "' + k + '" is missing in config file ' + config['internal']['conf_file'])
+                   l.logMsg('Stopping server')
+                   sys.exit(1)
+        else:
+            l.logMsg('Configuration file ' + config['internal']['conf_file'] + ' not found')
+            l.logMsg('Stopping server')
+            sys.exit(1)
+        server = TheServer('', int(config['enverproxy']['listen_port']), l)
         try:
-            l.logMsg('Starting server (v' + str(proxy_ver) + ')')
             server.main_loop()
         except KeyboardInterrupt:
             l.logMsg("Ctrl C - Stopping server")

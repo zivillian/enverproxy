@@ -3,15 +3,12 @@ import sys
 
 class slog:
     
-    def __init__(self, ident='', debug=False):
-        self.__DEBUG=debug
+    def __init__(self, ident=''):
         self.__ident=ident
         syslog.openlog(self.__ident)
         
     def __repr__(self):
-        return 'log(' + str(self.__ident) + ', ' + str(self.__DEBUG) + ')'
+        return 'log(' + str(self.__ident) + ')'
     
     def logMsg (self, msg):
-        #if self.__DEBUG:
-            #print(msg, file=sys.stderr)
         syslog.syslog(syslog.LOG_INFO, msg)
