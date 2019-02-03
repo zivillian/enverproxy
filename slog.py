@@ -5,7 +5,7 @@ class slog:
     
     # Verbosity levels (1-5)
     #   1 = only start/stop
-    #   2 = + errors
+    #   2 = + status and errors
     #   3 = + flow control
     #   4 = + data 
     #   5 = anything
