@@ -10,15 +10,16 @@ class slog:
     #   4 = + data 
     #   5 = anything
     
-    def __init__(self, ident='', verbosity = 3):
+    def __init__(self, ident='', verbosity = 3, cat = syslog.LOG_INFO):
         self.__ident     = ident
         self.__verbosity = verbosity
+        self.__cat       = cat
         syslog.openlog(self.__ident)
         
     def __repr__(self):
         return 'log(' + str(self.__ident) + ')'
     
-    def logMsg (self, msg, vlevel = 3, cat = syslog.LOG_INFO):
+    def logMsg (self, msg, vlevel = 3, cat = self.__cat):
         # Only write to log if vlevel >= verbosity
         if vlevel <= self.__verbosity:
             syslog.syslog(cat, msg)
