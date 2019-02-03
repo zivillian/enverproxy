@@ -9,6 +9,7 @@ import os
 import errno
 import configparser
 import ast
+import syslog
 from slog import slog
 from FHEM import FHEM
 
@@ -16,13 +17,13 @@ config = configparser.ConfigParser()
 config['internal']={}
 config['internal']['conf_file'] = '/etc/enverproxy.conf'
 config['internal']['version']   = '1.1'
-config['internal']['keys']      = "['buffer_size', 'delay', 'listen_port', 'DEBUG', 'forward_IP', 'forward_port', 'user', 'password', 'host', 'ID2device']"
+config['internal']['keys']      = "['buffer_size', 'delay', 'listen_port', 'verbosity', 'forward_IP', 'forward_port', 'user', 'password', 'host', 'ID2device']"
 
 
 class Forward:
     def __init__(self, l=None):
         if l == None:
-            self.__log = slog('Forward class', True)
+            self.__log = slog('Forward class')
         else:
             self.__log = l    
         self.forward = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -40,26 +41,35 @@ class TheServer:
     input_list = []
     channel = {}
 
-    def __init__(self, host, port, l=None):
-        if l == None:
-            self.__log = slog('TheServer class', True)
+    def __init__(self, host, port, forward_to, delay = 0.0001, buffer_size = 4096, log = None):
+        if log == None:
+            self.__log = slog('TheServer class')
         else:
-            self.__log = l
-        self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.__log = log
+        self.__delay       = delay
+        self.__buffer_size = buffer_size
+        self.__forward_to  = forward_to
+        self.__port        = port
+        self.__host        = host
+        self.server        = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.server.bind((host, port))
         self.server.listen(200)
 
+    def set_fhem_cred(self, host, user, password, id2device):
+        self.__url       = 'https://' + host + ':8083/fhem?'
+        self.__user      = user
+        self.__password  = password
+        self.__id2device = id2device
+
     def main_loop(self):
         self.input_list.append(self.server)
         while True:
-            if config['enverproxy']['DEBUG'].lower() == 'true':
-                self.__log.logMsg('Entering main loop')
-            time.sleep(float(config['enverproxy']['delay']))
+            self.__log.logMsg('Entering main loop', 5)
+            time.sleep(self.__delay)
             ss = select.select
             inputready, outputready, exceptready = ss(self.input_list, [], [])
-            if config['enverproxy']['DEBUG'].lower() == 'true':
-                self.__log.logMsg('Inputready: ' + str(inputready))
+            self.__log.logMsg('Inputready: ' + str(inputready), 3)
             for self.s in inputready:
                 if self.s == self.server:
                     # proxy server has new connection request
@@ -67,9 +77,8 @@ class TheServer:
                     break
                 # get the data
                 try:
-                    self.data = self.s.recv(int(config['enverproxy']['buffer_size']))
-                    if config['enverproxy']['DEBUG'].lower() == 'true':
-                        self.__log.logMsg('Main loop: ' + str(len(self.data)) + ' bytes received from ' + str(self.s.getpeername()))
+                    self.data = self.s.recv(self.__buffer_size)
+                    self.__log.logMsg('Main loop: ' + str(len(self.data)) + ' bytes received from ' + str(self.s.getpeername()), 4)
                     if not self.data or len(self.data) == 0:
                         # Client closed the connection
                         self.on_close()
@@ -77,7 +86,7 @@ class TheServer:
                     else:
                         self.on_recv()
                 except OSError as e:
-                    self.__log.logMsg('Main loop socket error: ' + str(e))
+                    self.__log.logMsg('Main loop socket error: ' + str(e), 3)
                     time.sleep(1) 
                     if e.errno in (errno.ENOTCONN, errno.ECONNRESET):
                         # Connection was closed abnormally
@@ -86,51 +95,45 @@ class TheServer:
                     continue
 
     def on_accept(self):
-        if config['enverproxy']['DEBUG'].lower() == 'true':
-            self.__log.logMsg('Entering on_accept')
-        forward = Forward(self.__log).start(config['enverproxy']['forward_IP'], int(config['enverproxy']['forward_port']))
+        self.__log.logMsg('Entering on_accept', 5)
+        forward = Forward(self.__log).start(self.__forward_to[0], self.__forward_to[1])
         clientsock, clientaddr = self.server.accept()
         if forward:
-            self.__log.logMsg(str(clientaddr) + ' has connected')
+            self.__log.logMsg(str(clientaddr) + ' has connected', 2)
             self.input_list.append(clientsock)
             self.input_list.append(forward)
-            if config['enverproxy']['DEBUG'].lower() == 'true':
-                self.__log.logMsg('New connection list: ' + str(self.input_list))
+            self.__log.logMsg('New connection list: ' + str(self.input_list), 5)
             self.channel[clientsock] = forward
             self.channel[forward] = clientsock
-            if config['enverproxy']['DEBUG'].lower() == 'true':
-                self.__log.logMsg('New channel dictionary: ' + str(self.channel))
+            self.__log.logMsg('New channel dictionary: ' + str(self.channel), 5)
         else:
-            self.__log.logMsg("Can't establish connection with remote server.")
-            self.__log.logMsg("Closing connection with client side" + str(clientaddr))
+            self.__log.logMsg("Can't establish connection with remote server.", 2, syslog.LOG_ERR)
+            self.__log.logMsg("Closing connection with client side" + str(clientaddr), 2, syslog.LOG_ERR)
             clientsock.close()
 
     def on_close(self):
-        if config['enverproxy']['DEBUG'].lower() == 'true':
-            self.__log.logMsg('Entering on_close')
+        self.__log.logMsg('Entering on_close', 5)
         in_s  = self.s
         out_s = self.channel[self.s]
         try:
             # close the connection with client
-            self.__log.logMsg(str(in_s.getpeername()) + " has disconnected")
+            self.__log.logMsg(str(in_s.getpeername()) + " has disconnected", 3)
             in_s.close()
         except OSError as e:
-            self.__log.logMsg('On_close socket error with ' + str(in_s) + ': ' + str(e))
+            self.__log.logMsg('On_close socket error with ' + str(in_s) + ': ' + str(e), 2, syslog.LOG_ERR)
         try:
             # close the connection with remote server
             out_s.close()
         except OSError as e:
-            self.__log.logMsg('On_close socket error with ' + str(out_s) + ': ' + str(e))
+            self.__log.logMsg('On_close socket error with ' + str(out_s) + ': ' + str(e), 2, syslog.LOG_ERR)
         #remove objects from input_list
         self.input_list.remove(in_s)
         self.input_list.remove(out_s)
-        if config['enverproxy']['DEBUG'].lower() == 'true':
-            self.__log.logMsg('Remaining connection list: ' + str(self.input_list))
+        self.__log.logMsg('Remaining connection list: ' + str(self.input_list), 5)
         # delete both objects from channel dict
         del self.channel[in_s]
         del self.channel[out_s]
-        if config['enverproxy']['DEBUG'].lower() == 'true':
-            self.__log.logMsg('Remaining channel dictionary: ' + str(self.channel))
+        self.__log.logMsg('Remaining channel dictionary: ' + str(self.channel), 5)
 
     def extract(self, data, wrind):
         pos1 = 40 + (wrind*64)
@@ -165,45 +168,35 @@ class TheServer:
     def submit_data(self, wrdata):
         # Can be https as well. Also: if you use another port then 80 or 443 do not forget to add the port number.
         # user and password.
-        url       = 'https://' + config['enverproxy']['host'] + ':8083/fhem?'
-        user      = config['enverproxy']['user']
-        password  = config['enverproxy']['password']
-        ID2device = ast.literal_eval(config['enverproxy']['id2device'])
-        fhem_server = FHEM(url, user, password, self.__log)
+        fhem_server = FHEM(self.__url, self.__user, self.__password, self.__log)
         for wrdict in wrdata:
-            if config['enverproxy']['DEBUG'].lower() == 'true':
-                self.__log.logMsg('Submitting data for converter: ' + str(wrdict['wrid']) + ' to FHEM')
+            self.__log.logMsg('Submitting data for converter: ' + str(wrdict['wrid']) + ' to FHEM', 3)
             values = ['wrid', 'ac', 'dc', 'temp', 'power', 'totalkwh', 'freq']
             for value in values:
-                if wrdict['wrid'] in ID2device:
-                    fhem_cmd = 'set ' + ID2device[wrdict['wrid']] + ' ' + value + ' ' + wrdict[value]
+                if wrdict['wrid'] in self.__id2device:
+                    fhem_cmd = 'set ' + self.__id2device[wrdict['wrid']] + ' ' + value + ' ' + wrdict[value]
                     fhem_server.send_command(fhem_cmd)
-                    if config['enverproxy']['DEBUG'].lower() == 'true':
-                        self.__log.logMsg('FHEM command: ' + fhem_cmd)
+                    self.__log.logMsg('FHEM command: ' + fhem_cmd, 4)
                 else:
-                    self.__log.logMsg('No FHEM device known for converter ID ' + wrdict['wrid'])
-        self.__log.logMsg('Data submitted to FHEM')
+                    self.__log.logMsg('No FHEM device known for converter ID ' + wrdict['wrid'], 2)
+        self.__log.logMsg('Finished sending to FHEM', 2)
 
     def process_data(self, data):
         datainhex = data.hex()
         wr = []
         wr_index = 0
         wr_index_max = 20
-        if config['enverproxy']['DEBUG'].lower() == 'true':
-            self.__log.logMsg("Processing Data")
+        self.__log.logMsg("Processing Data", 5)
         while True:
             response = self.extract(datainhex, wr_index)
             if response:
-                if config['enverproxy']['DEBUG'].lower() == 'true':
-                    self.__log.logMsg('Decoded data from microconverter with ID ' + str(response['wrid']))
+                self.__log.logMsg('Decoded data from microconverter with ID ' + str(response['wrid']), 2)
                 wr.append(response)
             wr_index += 1
             if wr_index >= wr_index_max:
                 break
-        if config['enverproxy']['DEBUG'].lower() == 'true':
-            self.__log.logMsg('Finished processing data for ' + str(len(wr)) + ' microconverter: ' + str(wr))
-        else:
-            self.__log.logMsg('Processed data for ' + str(len(wr)) + ' microconverter')
+        self.__log.logMsg('Finished processing data for ' + str(len(wr)) + ' microconverter: ' + str(wr), 4)
+        self.__log.logMsg('Processed data for ' + str(len(wr)) + ' microconverter', 3)
         self.submit_data(wr)
 
     def handshake(self, data):
@@ -214,62 +207,63 @@ class TheServer:
             data[5] = 7
             return data
         else:
-            self.__log.logMsg('Microconverter sent wrong start sequence ' + str(data[:6].hex()))
+            self.__log.logMsg('Microconverter sent wrong start sequence ' + str(data[:6].hex()), 2)
 
     def on_recv(self):
         data = self.data
-        if config['enverproxy']['DEBUG'].lower() == 'true':
-            self.__log.logMsg(str(len(data)) + ' bytes in on_recv')
-            self.__log.logMsg('Data as hex: ' + str(data.hex()))
-        if self.s.getsockname()[1] == int(config['enverproxy']['listen_port']):
+        self.__log.logMsg(str(len(data)) + ' bytes in on_recv', 4)
+        self.__log.logMsg('Data as hex: ' + str(data.hex()), 4)
+        if self.s.getsockname()[1] == self.__port:
             # receving data from a client
-            if config['enverproxy']['DEBUG'].lower() == 'true':
-                self.__log.logMsg('Data is coming from a client')
-            if (len(data) == 48) and (data[:6].hex() == '680030681006'):
+            self.__log.logMsg('Data is coming from a client', 5)
+            if data[:6].hex() == '680030681006':
                 # converter initiates connection
                 # create reply packet
                 reply = self.handshake(data)
                 """
                 # This part is simulating handshake with envertecportal.com
                 # Keep disabled if working as proxy between Enverbridge and envertecportal.com
-                if config['enverproxy']['DEBUG'].lower() == 'true':
-                    self.__log.logMsg('Replying to handshake with data ' + str(reply.hex()))
+                self.__log.logMsg('Replying to handshake with data ' + str(reply.hex()), 4)
                 self.s.send(reply)
-                if config['enverproxy']['DEBUG'].lower() == 'true':
-                    self.__log.logMsg('Reply sent to: ' + str(self.s))
+                self.__log.logMsg('Reply sent to: ' + str(self.s), 3)
                 """
-            elif (len(data) == 982) and (data[:6].hex() == '6803d6681004'):
+            elif data[:6].hex() == '6803d6681004':
                 # payload from converter
                 self.process_data(data)
             else:
-                self.__log.logMsg('Client sent message with unknown content and length ' + str(len(data)))
+                self.__log.logMsg('Client sent message with unknown content and length ' + str(len(data)), 2, syslog.LOG_ERR)
         # forward data to proxy peer
         self.channel[self.s].send(data)
-        if config['enverproxy']['DEBUG'].lower() == 'true':
-            self.__log.logMsg('Data forwarded to: ' + str(self.channel[self.s]))
+        self.__log.logMsg('Data forwarded to: ' + str(self.channel[self.s]), 3)
 
 
 if __name__ == '__main__':
-        l = slog('Envertec Proxy')
-        l.logMsg('Starting server (v' + config['internal']['version'] + ')')
+        log = slog('Envertec Proxy', verbosity = 2)
+        log.logMsg('Starting server (v' + config['internal']['version'] + ')', 1)
         if os.path.isfile(config['internal']['conf_file']):
            config.read(config['internal']['conf_file'])
            if 'enverproxy' not in config:
-               l.logMsg('Section [enverproxy] is missing in config file ' + config['internal']['conf_file'])
-               l.logMsg('Stopping server')
+               log.logMsg('Section [enverproxy] is missing in config file ' + config['internal']['conf_file'], 2, syslog.LOG_ERR)
+               log.logMsg('Stopping server', 1)
                sys.exit(1)
            for k in ast.literal_eval(config['internal']['keys']):
                if k not in config['enverproxy']:
-                   l.logMsg('Config variable "' + k + '" is missing in config file ' + config['internal']['conf_file'])
-                   l.logMsg('Stopping server')
+                   log.logMsg('Config variable "' + k + '" is missing in config file ' + config['internal']['conf_file'], 2, syslog.LOG_ERR)
+                   log.logMsg('Stopping server', 1)
                    sys.exit(1)
         else:
-            l.logMsg('Configuration file ' + config['internal']['conf_file'] + ' not found')
-            l.logMsg('Stopping server')
+            log.logMsg('Configuration file ' + config['internal']['conf_file'] + ' not found', 2, syslog.LOG_ERR)
+            log.logMsg('Stopping server', 1)
             sys.exit(1)
-        server = TheServer('', int(config['enverproxy']['listen_port']), l)
+        log.set_verbosity(int(config['enverproxy']['verbosity']))
+        forward_to  = (config['enverproxy']['forward_IP'], int(config['enverproxy']['forward_port']))
+        delay       = float(config['enverproxy']['delay'])
+        buffer_size = int(config['enverproxy']['buffer_size'])
+        port        = int(config['enverproxy']['listen_port'])
+        server      = TheServer(host = '', port = port, forward_to = forward_to, delay = delay, buffer_size = buffer_size, log = log)
+        server.set_fhem_cred(config['enverproxy']['host'], config['enverproxy']['user'], config['enverproxy']['password'], ast.literal_eval(config['enverproxy']['id2device']))
         try:
             server.main_loop()
         except KeyboardInterrupt:
-            l.logMsg("Ctrl C - Stopping server")
+            log.logMsg("Ctrl C - Stopping server", 1)
             sys.exit(1)
