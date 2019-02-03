@@ -17,7 +17,7 @@ config = configparser.ConfigParser()
 config['internal']={}
 config['internal']['conf_file'] = '/etc/enverproxy.conf'
 config['internal']['version']   = '1.2'
-config['internal']['keys']      = "['buffer_size', 'delay', 'listen_port', 'verbosity', 'forward_IP', 'forward_port', 'user', 'password', 'host', 'ID2device']"
+config['internal']['keys']      = "['buffer_size', 'delay', 'listen_port', 'verbosity', 'forward_IP', 'forward_port', 'user', 'password', 'host', 'id2device']"
 
 
 class Forward:
