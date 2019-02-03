@@ -82,7 +82,7 @@ class TheServer:
                     self.__log.logMsg('Main loop: ' + str(len(self.data)) + ' bytes received from ' + str(self.s.getpeername()), 4)
                     if not self.data or len(self.data) == 0:
                         # Client closed the connection
-                        self.on_close()
+                        self.on_close(self.s)
                         break
                     else:
                         self.on_recv()
@@ -91,7 +91,7 @@ class TheServer:
                     time.sleep(1) 
                     if e.errno in (errno.ENOTCONN, errno.ECONNRESET):
                         # Connection was closed abnormally
-                        self.on_close()
+                        self.on_close(self.s)
                 else:
                     continue
 
@@ -112,16 +112,16 @@ class TheServer:
             self.__log.logMsg("Closing connection with client side" + str(clientaddr), 2, syslog.LOG_ERR)
             clientsock.close()
 
-    def on_close(self):
-        self.__log.logMsg('Entering on_close', 5)
-        in_s  = self.s
-        out_s = self.channel[self.s]
+    def on_close(self, in_s):
+        self.__log.logMsg('Entering on_close with ' + str(in_s), 5)
+        out_s = self.channel[in_s]
+        self.__log.logMsg(str(in_s.getpeername()) + " has disconnected", 2)
         try:
             # close the connection with client
-            self.__log.logMsg(str(in_s.getpeername()) + " has disconnected", 3)
             in_s.close()
         except OSError as e:
             self.__log.logMsg('On_close socket error with ' + str(in_s) + ': ' + str(e), 2, syslog.LOG_ERR)
+        self.__log.logMsg('Closing connection to remote server ' + str(out_s.getpeername()), 2)
         try:
             # close the connection with remote server
             out_s.close()
@@ -135,6 +135,17 @@ class TheServer:
         del self.channel[in_s]
         del self.channel[out_s]
         self.__log.logMsg('Remaining channel dictionary: ' + str(self.channel), 5)
+        
+    def close_all(self):
+        # Close all connections
+        self.__log.logMsg('Entering close_all', 5)
+        self.__log.logMsg('Connections to close: ' + str(self.input_list), 4)
+        ilist = self.input_list
+        if len(ilist) > 1:
+            # first entry is proxy itself
+            del ilist[0]
+            for con in ilist:
+                self.on_close(con)
 
     def extract(self, data, wrind):
         pos1 = 40 + (wrind*64)
@@ -237,15 +248,19 @@ class TheServer:
         self.channel[self.s].send(data)
         self.__log.logMsg('Data forwarded to: ' + str(self.channel[self.s]), 3)
 
+
 class Signal_handler:
-    def __init__(self, log = None):
+    def __init__(self, server, log = None):
         if log == None:
             self.__log = slog('Signal_handler class')
         else:
             self.__log = log
+        self.__server = server
             
     def sigterm_handler(self, signal, frame):
-        self.__log.logMsg('Received SIGTERM, stopping server', 1)
+        self.__log.logMsg('Received SIGTERM, closing connections', 2)
+        self.__server.close_all()
+        self.__log.logMsg('Stopping server', 1)
         sys.exit(0)
 
 
@@ -278,10 +293,12 @@ if __name__ == '__main__':
     server      = TheServer(host = '', port = port, forward_to = forward_to, delay = delay, buffer_size = buffer_size, log = log)
     server.set_fhem_cred(config['enverproxy']['host'], config['enverproxy']['user'], config['enverproxy']['password'], ast.literal_eval(config['enverproxy']['id2device']))
     # Catch SIGTERM signals    
-    signal.signal(signal.SIGTERM, Signal_handler(log).sigterm_handler)
+    signal.signal(signal.SIGTERM, Signal_handler(server, log).sigterm_handler)
     # Start proxy server
     try:
         server.main_loop()
     except KeyboardInterrupt:
-        log.logMsg("Ctrl C - Stopping server", 1)
+        log.logMsg('Ctrl C received, closing connections', 2)
+        server.close_all()
+        log.logMsg('Stopping server', 1)
         sys.exit(0)
