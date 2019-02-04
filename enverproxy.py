@@ -114,6 +114,8 @@ class TheServer:
 
     def on_close(self, in_s):
         self.__log.logMsg('Entering on_close with ' + str(in_s), 5)
+        self.__log.logMsg('Connection list: ' + str(self.input_list), 5)
+        self.__log.logMsg('Channel dictionary: ' + str(self.channel), 5)
         out_s = self.channel[in_s]
         try:
             self.__log.logMsg('Trying to close ' + str(in_s), 5)
