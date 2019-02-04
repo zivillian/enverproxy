@@ -147,7 +147,7 @@ class TheServer:
     def close_all(self):
         # Close all connections
         self.__log.logMsg('Entering close_all', 5)
-        if len(ilist) > 1:
+        if len(self.input_list) > 1:
             # First connection cannot be closed: proxy listening on its port
             ilist = self.input_list[1:]
             self.__log.logMsg('Connections to close: ' + str(self.input_list), 4)
