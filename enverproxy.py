@@ -141,11 +141,11 @@ class TheServer:
     def close_all(self):
         # Close all connections
         self.__log.logMsg('Entering close_all', 5)
-        self.__log.logMsg('Connections to close: ' + str(self.input_list), 4)
         ilist = self.input_list
         if len(ilist) > 1:
             # first entry is proxy itself
             del ilist[0]
+            self.__log.logMsg('Connections to close: ' + str(self.input_list), 4)
             for con in ilist:
                 self.on_close(con)
 
