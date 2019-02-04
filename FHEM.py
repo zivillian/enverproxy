@@ -9,7 +9,7 @@ class FHEM:
     def __init__(self, baseURL = None, user='', passw='', l=None):
         if baseURL == None:
             # Place standard url of your fhem server here
-            self.__BASEURL = 'https://homeservice.eitelwein.net:8083/fhem?'
+            self.__BASEURL = 'https://fhem.eitelwein.net:8083/fhem?'
         else:
             self.__BASEURL = baseURL
         if l == None:

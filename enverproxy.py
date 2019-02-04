@@ -115,14 +115,14 @@ class TheServer:
     def on_close(self, in_s):
         self.__log.logMsg('Entering on_close with ' + str(in_s), 5)
         out_s = self.channel[in_s]
-        self.__log.logMsg(str(in_s.getpeername()) + " has disconnected", 2)
         try:
+            self.__log.logMsg(str(in_s.getpeername()) + " has disconnected", 2)
             # close the connection with client
             in_s.close()
         except OSError as e:
             self.__log.logMsg('On_close socket error with ' + str(in_s) + ': ' + str(e), 2, syslog.LOG_ERR)
-        self.__log.logMsg('Closing connection to remote server ' + str(out_s.getpeername()), 2)
         try:
+            self.__log.logMsg('Closing connection to remote server ' + str(out_s.getpeername()), 2)
             # close the connection with remote server
             out_s.close()
         except OSError as e:
