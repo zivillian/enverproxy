@@ -116,37 +116,40 @@ class TheServer:
         self.__log.logMsg('Entering on_close with ' + str(in_s), 5)
         self.__log.logMsg('Connection list: ' + str(self.input_list), 5)
         self.__log.logMsg('Channel dictionary: ' + str(self.channel), 5)
-        out_s = self.channel[in_s]
-        try:
-            self.__log.logMsg('Trying to close ' + str(in_s), 5)
-            self.__log.logMsg(str(in_s.getpeername()) + " has disconnected", 2)
-            # close the connection with client
-            in_s.close()
-        except OSError as e:
-            self.__log.logMsg('On_close socket error with ' + str(in_s) + ': ' + str(e), 2, syslog.LOG_ERR)
-        try:
-            self.__log.logMsg('Trying to close ' + str(out_s), 5)
-            self.__log.logMsg('Closing connection to remote server ' + str(out_s.getpeername()), 2)
-            # close the connection with remote server
-            out_s.close()
-        except OSError as e:
-            self.__log.logMsg('On_close socket error with ' + str(out_s) + ': ' + str(e), 2, syslog.LOG_ERR)
-        #remove objects from input_list
-        self.input_list.remove(in_s)
-        self.input_list.remove(out_s)
-        self.__log.logMsg('Remaining connection list: ' + str(self.input_list), 5)
-        # delete both objects from channel dict
-        del self.channel[in_s]
-        del self.channel[out_s]
-        self.__log.logMsg('Remaining channel dictionary: ' + str(self.channel), 5)
+        if in_s == self.input_list[0]:
+            # First connection  cannot be closed: proxy listening on its port
+            self.__log.logMsg('No connection left to close', 4)
+        else:
+            out_s = self.channel[in_s]
+            try:
+                self.__log.logMsg('Trying to close ' + str(in_s), 5)
+                self.__log.logMsg(str(in_s.getpeername()) + " has disconnected", 2)
+                # close the connection with client
+                in_s.close()
+            except OSError as e:
+                self.__log.logMsg('On_close socket error with ' + str(in_s) + ': ' + str(e), 2, syslog.LOG_ERR)
+            try:
+                self.__log.logMsg('Trying to close ' + str(out_s), 5)
+                self.__log.logMsg('Closing connection to remote server ' + str(out_s.getpeername()), 2)
+                # close the connection with remote server
+                out_s.close()
+            except OSError as e:
+                self.__log.logMsg('On_close socket error with ' + str(out_s) + ': ' + str(e), 2, syslog.LOG_ERR)
+            #remove objects from input_list
+            self.input_list.remove(in_s)
+            self.input_list.remove(out_s)
+            self.__log.logMsg('Remaining connection list: ' + str(self.input_list), 5)
+            # delete both objects from channel dict
+            del self.channel[in_s]
+            del self.channel[out_s]
+            self.__log.logMsg('Remaining channel dictionary: ' + str(self.channel), 5)
         
     def close_all(self):
         # Close all connections
         self.__log.logMsg('Entering close_all', 5)
-        ilist = self.input_list
         if len(ilist) > 1:
-            # first entry is proxy itself
-            del ilist[0]
+            # First connection cannot be closed: proxy listening on its port
+            ilist = self.input_list[1:]
             self.__log.logMsg('Connections to close: ' + str(self.input_list), 4)
             for con in ilist:
                 self.on_close(con)
