@@ -12,7 +12,7 @@ class slog:
     
     def __init__(self, ident='', verbosity = 3, cat = syslog.LOG_INFO):
         self.__ident     = ident
-        self.__verbosity = verbosity
+        self.setverbosity(verbosity)
         self.__cat       = cat
         syslog.openlog(self.__ident)
         
