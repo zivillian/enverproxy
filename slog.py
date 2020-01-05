@@ -11,9 +11,9 @@ class slog:
     #   5 = anything
     
     def __init__(self, ident='', verbosity = 3, cat = syslog.LOG_INFO):
-        self.__ident     = ident
+        self.__ident = ident
+        self.__cat   = cat
         self.setverbosity(verbosity)
-        self.__cat       = cat
         syslog.openlog(self.__ident)
         
     def __repr__(self):
