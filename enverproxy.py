@@ -17,6 +17,7 @@ from FHEM import FHEM
 config = configparser.ConfigParser()
 config['internal']={}
 config['internal']['conf_file'] = '/etc/enverproxy.conf'
+config['internal']['section']   = 'enverproxy'
 config['internal']['version']   = '1.2'
 config['internal']['keys']      = "['buffer_size', 'delay', 'listen_port', 'verbosity', 'forward_IP', 'forward_port', 'user', 'password', 'host', 'id2device']"
 
@@ -278,12 +279,13 @@ if __name__ == '__main__':
     # Get configuration data
     if os.path.isfile(config['internal']['conf_file']):
        config.read(config['internal']['conf_file'])
-       if 'enverproxy' not in config:
-           log.logMsg('Section [enverproxy] is missing in config file ' + config['internal']['conf_file'], 2, syslog.LOG_ERR)
+       section = config['internal']['section']
+       if section not in config:
+           log.logMsg('Section ' + section + ' is missing in config file ' + config['internal']['conf_file'], 2, syslog.LOG_ERR)
            log.logMsg('Stopping server', 1)
            sys.exit(1)
        for k in ast.literal_eval(config['internal']['keys']):
-           if k not in config['enverproxy']:
+           if k not in config[section]:
                log.logMsg('Config variable "' + k + '" is missing in config file ' + config['internal']['conf_file'], 2, syslog.LOG_ERR)
                log.logMsg('Stopping server', 1)
                sys.exit(1)
