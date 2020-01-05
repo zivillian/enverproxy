@@ -22,7 +22,7 @@ class slog:
     def logMsg (self, msg, vlevel = 3, cat = None):
         if cat == None:
             cat = self.__cat
-        # Only write to log if vlevel >= verbosity
+        # Only write to log if vlevel <= verbosity
         if vlevel <= self.__verbosity:
             syslog.syslog(cat, msg)
 
