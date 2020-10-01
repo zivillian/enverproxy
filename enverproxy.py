@@ -19,7 +19,7 @@ config['internal']={}
 config['internal']['conf_file'] = '/etc/enverproxy.conf'
 config['internal']['section']   = 'enverproxy'
 config['internal']['version']   = '1.2'
-config['internal']['keys']      = "['buffer_size', 'delay', 'listen_port', 'verbosity', 'log_type', 'forward_IP', 'forward_port', 'user', 'password', 'host', 'id2device']"
+config['internal']['keys']      = "['buffer_size', 'delay', 'listen_port', 'verbosity', 'log_type', 'forward_IP', 'forward_port', 'user', 'password', 'host', 'protocol', 'id2device']"
 
 
 class Forward:
@@ -58,8 +58,12 @@ class TheServer:
         self.server.bind((host, port))
         self.server.listen(200)
 
-    def set_fhem_cred(self, host, user, password, id2device):
-        self.__url       = 'https://' + host + ':8083/fhem?'
+    def set_fhem_cred(self, host, user, password, id2device, protocol):
+        if protocol == 'https':
+            self.__url = 'https://'
+        else
+            self.__url = 'http://'
+        self.__url       = self.__url + host + ':8083/fhem?'
         self.__user      = user
         self.__password  = password
         self.__id2device = id2device
@@ -300,7 +304,7 @@ if __name__ == '__main__':
     port        = int(config['enverproxy']['listen_port'])
     log = slog('Envertec Proxy', int(config['enverproxy']['verbosity']), config['enverproxy']['log_type'])
     server      = TheServer(host = '', port = port, forward_to = forward_to, delay = delay, buffer_size = buffer_size, log = log)
-    server.set_fhem_cred(config['enverproxy']['host'], config['enverproxy']['user'], config['enverproxy']['password'], ast.literal_eval(config['enverproxy']['id2device']))
+    server.set_fhem_cred(config['enverproxy']['host'], config['enverproxy']['user'], config['enverproxy']['password'], ast.literal_eval(config['enverproxy']['id2device']), config['enverproxy']['protocol'])
     # Catch SIGTERM signals    
     signal.signal(signal.SIGTERM, Signal_handler(server, log).sigterm_handler)
     # Start proxy server
