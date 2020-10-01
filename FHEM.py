@@ -52,7 +52,7 @@ class FHEM:
         data  = {'fwcsrf': token}
         url   = url + 'cmd=' + cmd
         try:
-            self.__log.logMsg('Sending data to FHEM server: ' + str(data), 4)
+            self.__log.logMsg('Sending data to FHEM server: ' + url, 4)
             r = self.__session.get(url, data=data)
         except requests.exceptions.RequestException as e:
             self.__log.logMsg('Requests error when posting command: ' + str(e), 2)
