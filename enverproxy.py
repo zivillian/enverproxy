@@ -19,7 +19,7 @@ config['internal']={}
 config['internal']['conf_file'] = '/etc/enverproxy.conf'
 config['internal']['section']   = 'enverproxy'
 config['internal']['version']   = '1.2'
-config['internal']['keys']      = "['buffer_size', 'delay', 'listen_port', 'verbosity', 'forward_IP', 'forward_port', 'user', 'password', 'host', 'id2device']"
+config['internal']['keys']      = "['buffer_size', 'delay', 'listen_port', 'verbosity', 'log_type', 'forward_IP', 'forward_port', 'user', 'password', 'host', 'id2device']"
 
 
 class Forward:
@@ -294,11 +294,11 @@ if __name__ == '__main__':
         log.logMsg('Stopping server', 1)
         sys.exit(1)
     # Process configuration data
-    log.set_verbosity(int(config['enverproxy']['verbosity']))
     forward_to  = (config['enverproxy']['forward_IP'], int(config['enverproxy']['forward_port']))
     delay       = float(config['enverproxy']['delay'])
     buffer_size = int(config['enverproxy']['buffer_size'])
     port        = int(config['enverproxy']['listen_port'])
+    log = slog('Envertec Proxy', int(config['enverproxy']['verbosity']), config['enverproxy']['log_type'])
     server      = TheServer(host = '', port = port, forward_to = forward_to, delay = delay, buffer_size = buffer_size, log = log)
     server.set_fhem_cred(config['enverproxy']['host'], config['enverproxy']['user'], config['enverproxy']['password'], ast.literal_eval(config['enverproxy']['id2device']))
     # Catch SIGTERM signals    
