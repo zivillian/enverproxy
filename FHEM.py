@@ -32,13 +32,15 @@ class FHEM:
     
     def get_token(self, url):
         try:
+            self.__log.logMsg('Initiating connection with FHEM server', 3)
             r = self.__session.get(url)
         except requests.exceptions.RequestException as e:
-            self.__log.logMsg('Requests error when getting token: ' + str(e))
+            self.__log.logMsg('Requests error when getting token: ' + str(e), 2)
         else:
             token = r.text
             token = token[token.find('csrf_'):]
             token = token[:token.find("\'")]
+            self.__log.logMsg('Received token from FHEM server: ' + token, 4)
         return token
 
     
@@ -51,7 +53,8 @@ class FHEM:
         data  = {'fwcsrf': token}
         url   = url + 'cmd=' + cmd
         try:
+            self.__log.logMsg('Sending data to FHEM server: ' + data, 4)
             r = self.__session.get(url, data=data)
         except requests.exceptions.RequestException as e:
-            self.__log.logMsg('Requests error when posting command: ' + str(e))
+            self.__log.logMsg('Requests error when posting command: ' + str(e), 2)
         
