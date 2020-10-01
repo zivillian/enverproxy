@@ -274,7 +274,7 @@ class Signal_handler:
 
 if __name__ == '__main__':
     # Initial verbositiy level is always 2 
-    log = slog('Envertec Proxy', verbosity = 2)
+    log = slog('Envertec Proxy', verbosity = 2, log_type='sys.stdout')
     log.logMsg('Starting server (v' + config['internal']['version'] + ')', 1)
     # Get configuration data
     if os.path.isfile(config['internal']['conf_file']):
