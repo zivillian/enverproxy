@@ -32,7 +32,7 @@ class FHEM:
     
     def get_token(self, url):
         try:
-            self.__log.logMsg('Initiating connection with FHEM server', 3)
+            self.__log.logMsg('Initiating connection with FHEM server: ' + url, 3)
             r = self.__session.get(url)
         except requests.exceptions.RequestException as e:
             self.__log.logMsg('Requests error when getting token: ' + str(e), 2)
