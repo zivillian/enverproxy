@@ -17,6 +17,8 @@ class slog:
         self.set_verbosity(verbosity)
         if log_type == 'sys.stdout':
             log_type=sys.stdout
+        elif log_type == 'sys.stderr':
+            log_type=sys.stderr
         else:
             log_type='syslog'
         if log_type == 'syslog':
