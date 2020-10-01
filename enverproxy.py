@@ -199,8 +199,8 @@ class TheServer:
             for value in values:
                 if wrdict['wrid'] in self.__id2device:
                     fhem_cmd = 'set ' + self.__id2device[wrdict['wrid']] + ' ' + value + ' ' + wrdict[value]
-                    fhem_server.send_command(fhem_cmd)
                     self.__log.logMsg('FHEM command: ' + fhem_cmd, 4)
+                    fhem_server.send_command(fhem_cmd)
                 else:
                     self.__log.logMsg('No FHEM device known for converter ID ' + wrdict['wrid'], 2)
         self.__log.logMsg('Finished sending to FHEM', 2)
