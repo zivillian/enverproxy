@@ -61,7 +61,7 @@ class TheServer:
     def set_fhem_cred(self, host, user, password, id2device, protocol):
         if protocol == 'https':
             self.__url = 'https://'
-        else
+        else:
             self.__url = 'http://'
         self.__url       = self.__url + host + ':8083/fhem?'
         self.__user      = user
