@@ -17,7 +17,6 @@ from FHEM import FHEM
 config = configparser.ConfigParser()
 config['internal']={}
 config['internal']['conf_file'] = '/etc/enverproxy.conf'
-config['internal']['conf_file'] = './enverproxy.conf'
 config['internal']['section']   = 'enverproxy'
 config['internal']['version']   = '1.2'
 config['internal']['keys']      = "['buffer_size', 'delay', 'listen_port', 'verbosity', 'log_type', 'log_address', 'log_port', 'forward_IP', 'forward_port', 'user', 'password', 'host', 'protocol', 'id2device']"
