@@ -17,9 +17,10 @@ from FHEM import FHEM
 config = configparser.ConfigParser()
 config['internal']={}
 config['internal']['conf_file'] = '/etc/enverproxy.conf'
+config['internal']['conf_file'] = './enverproxy.conf'
 config['internal']['section']   = 'enverproxy'
 config['internal']['version']   = '1.2'
-config['internal']['keys']      = "['buffer_size', 'delay', 'listen_port', 'verbosity', 'log_type', 'forward_IP', 'forward_port', 'user', 'password', 'host', 'protocol', 'id2device']"
+config['internal']['keys']      = "['buffer_size', 'delay', 'listen_port', 'verbosity', 'log_type', 'log_address', 'log_port', 'forward_IP', 'forward_port', 'user', 'password', 'host', 'protocol', 'id2device']"
 
 
 class Forward:
@@ -279,22 +280,21 @@ class Signal_handler:
 if __name__ == '__main__':
     # Initial verbositiy level is always 2 
     log = slog('Envertec Proxy', verbosity = 2, log_type='sys.stdout')
-    log.logMsg('Starting server (v' + config['internal']['version'] + ')', 1)
     # Get configuration data
     if os.path.isfile(config['internal']['conf_file']):
        config.read(config['internal']['conf_file'])
        section = config['internal']['section']
        if section not in config:
-           log.logMsg('Section ' + section + ' is missing in config file ' + config['internal']['conf_file'], 2, syslog.LOG_ERR)
+           log.logMsg('Section ' + section + ' is missing in config file ' + config['internal']['conf_file'], 2)
            log.logMsg('Stopping server', 1)
            sys.exit(1)
        for k in ast.literal_eval(config['internal']['keys']):
            if k not in config[section]:
-               log.logMsg('Config variable "' + k + '" is missing in config file ' + config['internal']['conf_file'], 2, syslog.LOG_ERR)
+               log.logMsg('Config variable "' + k + '" is missing in config file ' + config['internal']['conf_file'], 2)
                log.logMsg('Stopping server', 1)
                sys.exit(1)
     else:
-        log.logMsg('Configuration file ' + config['internal']['conf_file'] + ' not found', 2, syslog.LOG_ERR)
+        log.logMsg('Configuration file ' + config['internal']['conf_file'] + ' not found', 2)
         log.logMsg('Stopping server', 1)
         sys.exit(1)
     # Process configuration data
@@ -302,16 +302,21 @@ if __name__ == '__main__':
     delay       = float(config['enverproxy']['delay'])
     buffer_size = int(config['enverproxy']['buffer_size'])
     port        = int(config['enverproxy']['listen_port'])
-    log = slog('Envertec Proxy', int(config['enverproxy']['verbosity']), config['enverproxy']['log_type'])
+    verbosity   = int(config['enverproxy']['verbosity'])
     server      = TheServer(host = '', port = port, forward_to = forward_to, delay = delay, buffer_size = buffer_size, log = log)
+    log_type    = config['enverproxy']['log_type']
+    log_address = config['enverproxy']['log_address']
+    log_port    = int(config['enverproxy']['log_port'])
+    log         = slog('Envertec Proxy', verbosity, log_type, log_address, log_port)
     server.set_fhem_cred(config['enverproxy']['host'], config['enverproxy']['user'], config['enverproxy']['password'], ast.literal_eval(config['enverproxy']['id2device']), config['enverproxy']['protocol'])
     # Catch SIGTERM signals    
     signal.signal(signal.SIGTERM, Signal_handler(server, log).sigterm_handler)
     # Start proxy server
+    log.logMsg('Starting server (v' + config['internal']['version'] + ')', 1)
     try:
         server.main_loop()
     except KeyboardInterrupt:
-        log.logMsg('Ctrl C received, closing connections', 2)
+        log.logMsg('Ctrl-C received, closing connections', 2)
         server.close_all()
         log.logMsg('Stopping server', 1)
         sys.exit(0)
