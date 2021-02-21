@@ -16,7 +16,9 @@ class slog:
         self.__ident    = ident
         self.__cat      = cat
         self.set_verbosity(verbosity)
-        self.__log_type = log_type
+        self.__type     = log_type
+        self.__address  = log_address
+        self.__port     = log_port
         
         if log_type == 'sys.stdout':
             ch = logging.StreamHandler(sys.stdout)
@@ -49,10 +51,10 @@ class slog:
         if log_type == 'gelf':
             # insert a logging adapter to add static fields
             orig_logger = self.__logger
-            self.__logger = logging.LoggerAdapter(logging.getLogger(self.__ident), {'application_name': self.__ident, 'log_type': 'smarthome'})
+            self.__logger = logging.LoggerAdapter(logging.getLogger(self.__ident), {'application_name': 'envertecproxy', 'log_type': 'smarthome'})
 
     def __repr__(self):
-        return 'log(' + str(self.__ident) + ')'
+        return 'log(' + str(self.__ident) + ',' + self.__verbosity + ',' + self.__type + ',' + self.__address + ',' + self.__port + ')'
     
     def logMsg (self, msg, vlevel = 3, cat = None):
         if cat == None:

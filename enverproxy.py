@@ -18,7 +18,7 @@ config = configparser.ConfigParser()
 config['internal']={}
 config['internal']['conf_file'] = '/etc/enverproxy.conf'
 config['internal']['section']   = 'enverproxy'
-config['internal']['version']   = '1.2'
+config['internal']['version']   = '1.3'
 config['internal']['keys']      = "['buffer_size', 'delay', 'listen_port', 'verbosity', 'log_type', 'log_address', 'log_port', 'forward_IP', 'forward_port', 'user', 'password', 'host', 'protocol', 'id2device']"
 
 
@@ -277,7 +277,8 @@ class Signal_handler:
 
 
 if __name__ == '__main__':
-    # Initial verbositiy level is always 2 
+    # Initial verbositiy level is always 2
+    # Start logging to std.out by default and until config is read 
     log = slog('Envertec Proxy', verbosity = 2, log_type='sys.stdout')
     # Get configuration data
     if os.path.isfile(config['internal']['conf_file']):
