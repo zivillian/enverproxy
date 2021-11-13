@@ -242,7 +242,7 @@ class TheServer:
                 # create reply packet
                 reply = self.handshake(data)
                 # This part is simulating handshake with envertecportal.com
-                # Keep disabled if working as proxy between Enverbridge and envertecportal.com
+                # disable if working as proxy between Enverbridge and envertecportal.com
                 self.__log.logMsg('Replying to handshake with data ' + str(reply.hex()), 4)
                 self.s.send(reply)
                 self.__log.logMsg('Reply sent to: ' + str(self.s), 3)
