@@ -1,7 +1,6 @@
 import sys
 import logging
 import logging.handlers
-import graypy
 
 class slog:
     
@@ -28,8 +27,6 @@ class slog:
             ch = logging.StreamHandler(sys.stderr)
             formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
             ch.setFormatter(formatter)
-        elif log_type == 'gelf':
-            ch = graypy.GELFUDPHandler(log_address, log_port)
         else:
             # default is to log to syslog
             log_type='syslog'
@@ -48,10 +45,6 @@ class slog:
             # remove previous handler
             self.__logger.handlers.pop()
         self.__logger.addHandler(ch)
-        if log_type == 'gelf':
-            # insert a logging adapter to add static fields
-            orig_logger = self.__logger
-            self.__logger = logging.LoggerAdapter(logging.getLogger(self.__ident), {'application_name': 'envertecproxy', 'log_type': 'smarthome'})
 
     def __repr__(self):
         return 'log(' + str(self.__ident) + ',' + self.__verbosity + ',' + self.__type + ',' + self.__address + ',' + self.__port + ')'

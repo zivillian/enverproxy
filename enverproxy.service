@@ -1,12 +1,11 @@
 [Unit]
 Description=EnverBridge Proxy Server
-After=syslog.target network-online.target fhem.service
-Requires=fhem.service
+After=syslog.target network-online.target
 
 [Service]
 Type=simple
 User=fhem
-ExecStart=/opt/Enverbridge-Proxy/enverproxy.py
+ExecStart=/opt/enverproxy/enverproxy.py
 Restart=on-failure
 RestartSec=10
 KillMode=process
