@@ -188,7 +188,7 @@ class TheServer:
         d_dez_ac    = int(d_hex_ac, 16)/64
         d_dez_freq  = int(d_hex_freq[0:2], 16)+int(d_hex_freq[2:4], 16)/ 256
         # Ignore if converter id is zero
-        if int(d_wr_id) != 0:
+        if int(d_wr_id, base=16) != 0:
             result = {'wrid' : d_wr_id, 'dc' : d_dez_dc, 'power' : d_dez_power, 'totalkwh' : d_dez_total, 'temp' : d_dez_temp, 'ac' : d_dez_ac, 'freq' : d_dez_freq, 'remaining' : d_hex_remaining}
             return result
 
