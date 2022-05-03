@@ -181,12 +181,12 @@ class TheServer:
         d_hex_freq      = data[pos1+36:pos1+36+4]
         d_hex_remaining = data[pos1+40:pos1+40+24]
         # Calculation
-        d_dez_dc    = int(d_hex_dc, 16)/512
-        d_dez_power = int(d_hex_power, 16)/64
-        d_dez_total = int(d_hex_total, 16)/8192
-        d_dez_temp  = ((int(d_hex_temp[0:2], 16)*256+int(d_hex_temp[2:4], 16))/ 128)-40
-        d_dez_ac    = int(d_hex_ac, 16)/64
-        d_dez_freq  = int(d_hex_freq[0:2], 16)+int(d_hex_freq[2:4], 16)/ 256
+        d_dez_dc    = round((int(d_hex_dc, 16)/512),2)                                 
+        d_dez_power = round((int(d_hex_power, 16)/64),2)                               
+        d_dez_total = round((int(d_hex_total, 16)/8192),2)                                                                                                                          
+        d_dez_temp  = round((((int(d_hex_temp[0:2], 16)*256+int(d_hex_temp[2:4], 16))/ 128)-40),2)                                                                                  
+        d_dez_ac    = round((int(d_hex_ac, 16)/64),2)                                                                                                                               
+        d_dez_freq  = round((int(d_hex_freq[0:2], 16)+int(d_hex_freq[2:4], 16)/ 256),2)   
         # Ignore if converter id is zero
         if int(d_wr_id, base=16) != 0:
             result = {'wrid' : d_wr_id, 'dc' : d_dez_dc, 'power' : d_dez_power, 'totalkwh' : d_dez_total, 'temp' : d_dez_temp, 'ac' : d_dez_ac, 'freq' : d_dez_freq, 'remaining' : d_hex_remaining}
