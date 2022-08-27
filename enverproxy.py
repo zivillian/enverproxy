@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 # This is a simple port-forward / proxy for EnvertecBridge
 
+import argparse
 import ast
 import configparser
 import errno
@@ -16,9 +17,13 @@ import time
 from datetime import datetime
 from slog import slog
 
+argparser = argparse.ArgumentParser("Enverproxy");
+argparser.add_argument("--config", help="Path to config.", type=str, default="/etc/enverproxy.conf")
+args = argparser.parse_args()
+
 config = configparser.ConfigParser()
 config['internal']={}
-config['internal']['conf_file'] = '/etc/enverproxy.conf'
+config['internal']['conf_file'] = args.config
 config['internal']['section']   = 'enverproxy'
 config['internal']['version']   = '1.3'
 config['internal']['keys']      = "['buffer_size', 'delay', 'listen_port', 'verbosity', 'log_type', 'log_address', 'log_port', 'forward_IP', 'forward_port', 'mqttuser', 'mqttpassword', 'mqtthost', 'mqttport']"
