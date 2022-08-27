@@ -9,6 +9,7 @@ Using this python script, you can decode the traffic between your envertech EVB2
 ### Receiving side
 
 Clone this repo on a linux machine at `/opt/enverproxy` and configure it as a [systemd unit](enverproxy.service). Copy and update the config at [/etc/enverproxy.conf](enverproxy.conf) to your needs.
+Requires `paho-mqtt`. You can install it via `pip3 install paho-mqtt`
 
 ### EVB202
 
