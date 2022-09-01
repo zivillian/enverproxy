@@ -1,0 +1,13 @@
+version: '3.3'
+services:
+    enverproxy:
+        restart: unless-stopped
+        build: .
+        ports:
+            - '1898:1898'
+        container_name: enverproxy
+        volumes:
+            - './enverproxy.conf:/data/app/enverproxy.conf:ro'
+            - '/etc/localtime:/etc/localtime:ro'
+        healthcheck:
+            test: ["CMD-SHELL", "netstat -ltn | grep -c 1898 || exit 1"]
