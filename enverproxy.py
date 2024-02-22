@@ -68,7 +68,7 @@ class TheServer:
         self.server.listen(200)
 
     def connect_mqtt(self, host, user, password, port):
-        self.mqtt = mqtt.Client(mqtt.CallbackAPIVersion.VERSION1, client_id='enverproxy')
+        self.mqtt = mqtt.Client(callback_api_version=mqtt.CallbackAPIVersion.VERSION1, client_id='enverproxy')
         if (user != None or password != None):
             self.mqtt.username_pw_set(user, password)
         self.mqtt.connect(host, port)
