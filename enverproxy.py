@@ -253,7 +253,7 @@ class TheServer:
                 self.__log.logMsg('Reply sent to: ' + str(self.s), 3)
                 data = json.dumps({"ip":self.s.getpeername()[0], "last_seen":datetime.utcnow().isoformat()})
                 self.mqtt.publish('enverbridge/bridge', data)
-            elif data[:6].hex() == '6803d6681004':
+            elif data[:6].hex() in ['6803d6681004', '680056681004']:
                 # payload from converter
                 self.process_data(data)
             else:
