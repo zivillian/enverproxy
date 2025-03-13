@@ -211,7 +211,7 @@ class TheServer:
         datainhex = data.hex()
         wr = []
         wr_index = 0
-        wr_index_max = 20
+        wr_index_max = ((len(datainhex)-40)//64)
         self.__log.logMsg("Processing Data", 5)
         while True:
             response = self.extract(datainhex, wr_index)
